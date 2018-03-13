@@ -1,0 +1,141 @@
+{
+        "AnaptysBio": { 
+            "Screening 1": {
+            "visit_name": "Screening 1",
+            "visit_category": "Screening",
+            "duration": 8,
+            "offset": "-",
+            "days_from_offset": 7,
+            "lower_window": 7,
+            "upper_window": 0
+          },
+            "Screening 2": {
+             "visit_name": "Screening 2",
+            "visit_category": "Screening",
+            "duration": 8,
+            "offset": "Screening 1",
+            "days_from_offset": 14,
+            "lower_window": 7,
+            "upper_window": 0
+          },
+            "Day 1" : {
+            "visit_name": "Day 1",
+            "visit_category": "Infusion + Labs",
+            "duration": 8,
+            "offset": "Screening 1",
+            "days_from_offset": 1,
+            "lower_window": 0,
+            "upper_window": 0
+          },
+        "Day 2" :{
+            "visit_name": "Day 2",
+            "visit_category": "Labs Only",
+            "duration": 1,
+            "offset": "Day 1",
+            "days_from_offset": 5,
+            "lower_window": 0,
+            "upper_window": 0
+          }
+        },
+        "ASTELLAS": {
+              "Screening 1": {
+			    "visit_name": "Screening 1",
+			    "visit_category": "Screening",
+			    "duration": 2,
+			    "offset": "-",
+			    "days_from_offset": 0,
+			    "lower_window": "?",
+			    "upper_window": "?"
+          },
+            "Screening 2": {
+			    "visit_name": "Screening 2",
+			    "visit_category": "Screening",
+			    "duration": 8,
+			    "offset": "Screening 1",
+			    "days_from_offset": 7,
+			    "lower_window": "?",
+			    "upper_window": "?"
+          },
+			 "Day 1":  {
+			    "visit_name": "Day 1",
+			    "visit_category": "Vaccine + EKG",
+			    "duration": 3,
+			    "offset": "Screening 2",
+			    "days_from_offset": 7,
+			    "lower_window": 5,
+			    "upper_window": 5
+			  },
+			  "Day 15":{
+			    "visit_name": "Day 15",
+			    "visit_category": "Vaccine Only",
+			    "duration": 3,
+			    "offset": "Day 1",
+			    "days_from_offset": 15,
+			    "lower_window": 5,
+			    "upper_window": 5
+			  },
+			  "Day 29":{
+			    "visit_name": "Day 29",
+			    "visit_category": "Vaccine + EKG",
+			    "duration": 3,
+			    "offset": "Day 1",
+			    "days_from_offset": 29,
+			    "lower_window": 5,
+			    "upper_window": 5
+			  },
+			  "Day 43":{
+			    "visit_name": "Day 43",
+			    "visit_category": "Vaccine + EKG",
+			    "duration": 3,
+			    "offset": "Day 1",
+			    "days_from_offset": 43,
+			    "lower_window": 5,
+			    "upper_window": 5
+			  },
+			  "Day 71": {
+			    "visit_name": "Day 71",
+			    "visit_category": "Labs Only",
+			    "duration": 1,
+			    "offset": "Day 1",
+			    "days_from_offset": 71,
+			    "lower_window": 7,
+			    "upper_window": 7
+			  },
+			  "Day 99":{
+			    "visit_name": "Day 99",
+			    "visit_category": "Labs Only",
+			    "duration": 1,
+			    "offset": "Day 1",
+			    "days_from_offset": 99,
+			    "lower_window": 7,
+			    "upper_window": 7
+			  },
+			  "Day 127":{
+			    "visit_name": "Day 127",
+			    "visit_category": "Food Challenge + EKG + Labs",
+			    "duration": 8,
+			    "offset": "Day 1",
+			    "days_from_offset": 127,
+			    "lower_window": 7,
+			    "upper_window": 7
+			  },
+			  "Day 169":{
+			    "visit_name": "Day 169",
+			    "visit_category": "Labs Only",
+			    "duration": 1,
+			    "offset": "Day 1",
+			    "days_from_offset": 169,
+			    "lower_window": 7,
+			    "upper_window": 7
+			  },
+			  "Day 211":{
+			    "visit_name": "Day 211",
+			    "visit_category": "Labs Only",
+			    "duration": 1,
+			    "offset": "Day 1",
+			    "days_from_offset": 211,
+			    "lower_window": 7,
+			    "upper_window": 7
+			  }
+      }
+}

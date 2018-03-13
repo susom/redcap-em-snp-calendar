@@ -1,0 +1,90 @@
+{
+  "name": "SNP Scheduler",
+
+  "namespace":"Stanford\\SNP",
+
+  "description": "A calendar manager for SNP clinics",
+
+  "authors": [
+    {
+      "name": "Andy Martin",
+      "email": "andy123@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Jae Lee",
+      "email": "jael@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Lee Ann Yasukawa",
+      "email": "yasukawa@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+
+  "permissions": [
+  ],
+
+  "links": {
+    "control-center": [
+    ],
+    "project": [
+      {
+        "name": "SNP Scheduler",
+        "icon": "gear",
+        "url": "pages/Scheduler.php"
+      },
+      {
+        "name": "SNP Appointments",
+        "icon": "gear",
+        "url": "pages/Appointments.php"
+      }
+    ]
+  },
+
+  "no-auth-pages": [
+  ],
+
+  "system-settings": [
+    {
+      "key": "log_path",
+      "name": "<b>Full server path to log file</b>",
+      "required": false,
+      "type": "text"
+    }
+  ],
+
+  "project-settings": [
+    {
+      "key": "registry_pid",
+      "name": "<b>Registry Project PID</b>",
+      "required": true,
+      "type": "project-id"
+    },
+    {
+      "key": "registry_first_event",
+      "name": "<b>Event ID from Registry project for first event:</b>",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "key": "calendar_event_id",
+      "name": "<b>Calendar Arm/Event</b>",
+      "required": true,
+      "type": "event-list"
+    },
+    {
+      "key": "appt_event_id",
+      "name": "<b>Appointment Arm/Event</b>",
+      "required": true,
+      "type": "event-list"
+    },
+    {
+      "key": "token_event_id",
+      "name": "<b>Token Arm/Event</b>",
+      "required": true,
+      "type": "event-list"
+    }
+  ]
+}
