@@ -96,24 +96,26 @@ class Util
     }
 
 
-    public static function renderTable($id, $header = array(), $results, $appt_pid, $appt_event=null, $add_delete_btn=true) {
+    public static function renderTable($id, $header = array(), $results, $pid, $event=null, $add_delete_btn=true) {
         //Render table
-        $grid = '<table id="' . $id . '" class="display" style="width:100%">';
-        $grid .= self::renderHeaderRow($header, 'thead');
-        $grid .= self::renderTableRows($results, $appt_pid, $appt_event, $add_delete_btn);
+        $grid = '<table id="' . $id . '" class="display" style="width: 100%">';
+        $grid .= self::renderHeaderRow($header, 'thead', $add_delete_btn);
+        $grid .= self::renderTableRows($results, $pid, $event, $add_delete_btn);
         $grid .= '</table>';
 
         return $grid;
     }
 
-    private static function renderHeaderRow($header = array(), $tag) {
+    private static function renderHeaderRow($header = array(), $tag, $add_col=true) {
         $row = '<'.$tag.'><tr>';
         foreach ($header as $col_key => $this_col) {
             $row .=  '<th>'.$this_col.'</th>';
         }
 
         // Add an extra column to the header for the Update and Delete buttons
-        $row .= '<th> </th>';
+        if ($add_col === true) {
+            $row .= '<th> </th>';
+        }
         $row .= '</tr></'.$tag.'>';
         return $row;
     }
@@ -187,13 +189,12 @@ class Util
             // We are getting records for all appointments so do not specify a record_id
             $results = Util::getData($pid, $event_name, null, $fields, true);
             $headers = Util::getHeader($pid, $fields);
-            $grid = Util::renderTable('appt', $headers, $results, $fields, $pid, $event_name, false);
-            print $grid;
+            $grid = Util::renderTable('appt', $headers, $results, $pid, $event_name, false);
+            return $grid;
         } catch (Exception $e) {
             throw $e;
         }
     }
-
 
     private static function getHeader($pid, $fields) {
 

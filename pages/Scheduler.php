@@ -74,7 +74,7 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
     // If the record_id is null, create an entry in Redcap before continuing so there will be record_id
     if (is_null($record_id) or empty($record_id)) {
         $record_id = addAppointmentRecord($appt_pid, 'record_id', null, null,
-            null, null, null);
+            null, null, null, null);
     }
 
     // Retrieve raw form of data - not labels
@@ -233,8 +233,7 @@ function getScheduleTable($id, $ppid, $study) {
 
 /**
  *
- * @param unknown $this_template
- * @param unknown $dt_helper
+ * @param array $this_template
  * @param unknown $pid : pid of project where appointments are to be added
  * @return NULL|string[]|unknown[]
  */
@@ -350,8 +349,8 @@ function calcTemplateDates($appts, $this_template, $pid, $vis_ppid, $vis_study) 
  *
  * @param int $pid
  * @param string $id_field
- * @param unknown $visit_name
- * @param unknown $template_fields
+ * @param string $visit_name
+ * @param array $template_fields
  * @return int
  */
 function addAppointmentRecord($pid, $id_field, $vis_ppid,$vis_study, $visit_name, $cat_key, $template_fields, $vis_status) {
@@ -427,7 +426,9 @@ function renderPPIDList($pid, $ppid_list) {
     /**
      * RECORD SELECTION DROP-DOWN
      */
-    $select =  "<select class='input-lg' name='participant' id='participant' class='x-form-text x-form-field' style='max-width:350px;'>";
+//    $select =  "<select class='input-lg' name='participant' id='participant' class='x-form-text x-form-field' style='max-width:350px;'>";
+    $select =  "<input class='input-lg'  list='participant' class='x-form-text x-form-field' style='max-width:350px;'>";
+    $select .=  "<datalist id='participant'>";
     $select .= "<option selected disabled>Select Participant...</option>";
 
     // sort first by last name
@@ -458,7 +459,8 @@ function renderPPIDList($pid, $ppid_list) {
             $select .= "<option value='{$rec_id}'>{$last_name}, {$first_name} |ID: {$rec_id} |DOB: {$dob} | {$study_label} - {$study_pid_current}</option>";
         }
     }
-    $select .= "</select>";
+//    $select .= "</select>";
+    $select .= "</datalist>";
 
     return $select;
 }
@@ -493,8 +495,8 @@ function getAppointments($project_id, $vis_ppid, $vis_study) {
 
 /**
  * Get the tamplate from the template.txt (from Dana Tupa's excel file)
- * @param unknown $vis_study
- * @return unknown
+ * @param int $vis_study
+ * @return array
  */
 
 function getTemplate($vis_study) {
@@ -545,7 +547,10 @@ function getDictionaryOptions($fieldname) {
 <!--
     <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css' rel='stylesheet' media='screen'>
 -->
-    <link href='https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css' rel='stylesheet' media='screen'>
+    <!--  from https://datatables.net/download/  -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs-3.3.7/jqc-1.12.4/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-colvis-1.3.1/b-flash-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("pages/scheduler.css") ?>" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" media="screen">
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
     <script src='https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js'></script>
@@ -559,133 +564,139 @@ function getDictionaryOptions($fieldname) {
         margin: 0px 20px;
     }
 </style>
+
 <div class="container">
     <h1>Scheduler</h1>
     <br><br>
     <form action="" method="post">
+
+        <input list="test">
+        <datalist id="test">
+            <option value="1234">1234</option>
+            <option value="2345">2345</option>
+            <option value="3456">3456</option>
+            <option value="4567">4567</option>
+            <option value="5678">5678</option>
+        </datalist>
+
+
+
         <?php echo $select?>
-        <button style="margin-top: -4px;" class="btn btn-lg btn-primary" name="lookup" onclick='window.location.reload(true);'>Look up template schedule</button>
+        <button style="margin-top: -4px;" class="btn btn-lg btn-primary" name="lookup" onclick='window.location.reload(true);'>Look up participants</button>
     </form>
 
     <?php
-    if (isset($ppid) && $ppid != '') {
+    if (isset($ppid) && !empty($ppid)) {
     ?>
-    <div class="page-header">
-        <h4> <?php echo $demog_label?></h4>
-    </div>
+        <div class="page-header">
+            <h4> <?php echo $demog_label?></h4>
+        </div>
 
+        <?php  print $nav_tab_panel ?>
+        <br>
+        <?php  print $tab_panel   ?>
     <?php
-    print $nav_tab_panel;
-    print $tab_panel;
+    }
     ?>
-</div>
-<?php
-}
-?>
 
-<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js' type="text/javascript"></script>
-<!-- Include all compiled plugins (below), or include individual files as needed -->
-<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js' type="text/javascript"></script>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js' type="text/javascript"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js' type="text/javascript"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs-3.3.7/jqc-1.12.4/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-colvis-1.3.1/b-flash-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.js"></script>
 
-<!--  from https://datatables.net/download/  -->
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs-3.3.7/jqc-1.12.4/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-colvis-1.3.1/b-flash-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.css"/>
-<!--
-<link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("pages/scheduler.css") ?>" />
--->
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs-3.3.7/jqc-1.12.4/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-colvis-1.3.1/b-flash-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.js"></script>
+    <!-- Modal to Edit/Delete Appointment -->
+    <div class="modal fade" id="apptModal" tabindex="-1" role="dialog" aria-labelledby="apptModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                    </button>
+                    <h4 class="modal-title">
+                        Edit Appointment
+                    </h4>
+                </div>
 
-<!-- Modal to Edit/Delete Appointment -->
-<div class="modal fade" id="apptModal" tabindex="-1" role="dialog" aria-labelledby="apptModal" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <!-- Modal Header -->
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
-                </button>
-                <h4 class="modal-title">
-                    Edit Appointment
-                </h4>
-            </div>
-
-            <div class="modal-body">
-                <div class="panel panel-primary">
-                    <div class="panel-heading"><strong>Appointment</strong></div>
-                    <div class="panel-body">
-                        <div class="input-group">
-                            <div style="visibility: hidden; display: inline;">
-                                <input type="text" class="form-control" id="appt_record_id" name="appt_record_id">
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_ppid" class="col-sm-4 control-label">Participant:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="vis_ppid" name="vis_ppid" placeholder="Participant:">
+                <div class="modal-body">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading"><strong>Appointment</strong></div>
+                        <div class="panel-body">
+                            <div class="input-group">
+                                <div style="visibility: hidden; display: inline;">
+                                    <input type="text" class="form-control" id="appt_record_id" name="appt_record_id">
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_study" class="col-sm-4 control-label">Study:</label>
-                                <div class="col-sm-8">
-                                    <?php echo getDictionaryOptions('vis_study') ?>
+                                <div class="form-group">
+                                    <label for="vis_ppid" class="col-sm-4 control-label">Participant:</label>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" id="vis_ppid" name="vis_ppid" placeholder="Participant:">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_name" class="col-sm-4 control-label">Visit Name:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="vis_name" name="vis_name" placeholder="Visit Name:">
+                                <div class="form-group">
+                                    <label for="vis_study" class="col-sm-4 control-label">Study:</label>
+                                    <div class="col-sm-8">
+                                        <?php echo getDictionaryOptions('vis_study') ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_category" class="col-sm-4 control-label">Visit Category:</label>
-                                <div class="col-sm-8">
-                                    <?php echo getDictionaryOptions('vis_category') ?>
+                                <div class="form-group">
+                                    <label for="vis_name" class="col-sm-4 control-label">Visit Name:</label>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" id="vis_name" name="vis_name" placeholder="Visit Name:">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_date" class="col-sm-4 control-label">Visit Date:</label>
-                                <div class="col-sm-8">
-                                    <input type="date" class="form-control" id="vis_date" name="vis_date">
+                                <div class="form-group">
+                                    <label for="vis_category" class="col-sm-4 control-label">Visit Category:</label>
+                                    <div class="col-sm-8">
+                                        <?php echo getDictionaryOptions('vis_category') ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_start_time" class="col-sm-4 control-label">Visit Start Time:</label>
-                                <div class="col-sm-8">
-                                    <input type="time" class="form-control" id="vis_start_time" name="vis_start_time">
+                                <div class="form-group">
+                                    <label for="vis_date" class="col-sm-4 control-label">Visit Date:</label>
+                                    <div class="col-sm-8">
+                                        <input type="date" class="form-control" id="vis_date" name="vis_date">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_end_time" class="col-sm-4 control-label">Visit End Time:</label>
-                                <div class="col-sm-8">
-                                    <input type="time" class="form-control" id="vis_end_time" name="vis_end_time">
+                                <div class="form-group">
+                                    <label for="vis_start_time" class="col-sm-4 control-label">Visit Start Time:</label>
+                                    <div class="col-sm-8">
+                                        <input type="time" class="form-control" id="vis_start_time" name="vis_start_time">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_room" class="col-sm-4 control-label">Visit Room</label>
-                                <div class="col-sm-8">
-                                    <?php echo getDictionaryOptions('vis_room') ?>
+                                <div class="form-group">
+                                    <label for="vis_end_time" class="col-sm-4 control-label">Visit End Time:</label>
+                                    <div class="col-sm-8">
+                                        <input type="time" class="form-control" id="vis_end_time" name="vis_end_time">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_status" class="col-sm-4 control-label">Visit Status</label>
-                                <div class="col-sm-8">
-                                    <?php echo getDictionaryOptions('vis_status') ?>
+                                <div class="form-group">
+                                    <label for="vis_room" class="col-sm-4 control-label">Visit Room</label>
+                                    <div class="col-sm-8">
+                                        <?php echo getDictionaryOptions('vis_room') ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="vis_note" class="col-sm-4 control-label">Pre-Visit Note</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="vis_note" name="vis_note" placeholder="Pre-Visit Note">
+                                <div class="form-group">
+                                    <label for="vis_status" class="col-sm-4 control-label">Visit Status</label>
+                                    <div class="col-sm-8">
+                                        <?php echo getDictionaryOptions('vis_status') ?>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vis_note" class="col-sm-4 control-label">Pre-Visit Note</label>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" id="vis_note" name="vis_note" placeholder="Pre-Visit Note">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <input type="hidden" name="record"/>
                 </div>
-                <input type="hidden" name="record"/>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary action" data-action="save-appointment">Save</button>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary action" data-action="save-appointment">Save</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>

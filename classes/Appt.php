@@ -180,6 +180,7 @@ class Appt
 
     public function deleteCalendarEvent($record_id, $event_id) {
 
+        $return = false;
         // Retrieve record so we know where to delete from
         $record = $this->getEventFromRedcap($record_id);
 
@@ -193,7 +194,6 @@ class Appt
 
         $header = array('Authorization: Bearer ' . $token);
         $request = $this->requestURL . '/v1.0/me/events/' . $record['eventid'];
-//        $response = $this->deleteOutlookEvent($request, $header);
         $response = $this->post_request("delete", $request, $header);
 
         if ($response === false) {
@@ -208,9 +208,11 @@ class Appt
                 $string = "Did not delete Redcap record " . $record_id . ". REDCAP does not match Outlook!!!";
             } else {
                 $string = "Deleted Redcap record " . $rc_response;
+                $return = true;
             }
         }
         SNP::log($string);
+        return $return;
     }
 
 

@@ -52,6 +52,9 @@ $(document).ready(function() {
             console.log('Calling saveAppt for record: ' + record_id);
             snp.saveAppt();
         }
+
+        console.log('Back from Action: ' + action + ' on record ' + record_id);
+
     });
 } );
 
@@ -62,7 +65,6 @@ snp.editAppt= function(record_id) {
 
     // initialize the model before displaying
     var modal = $('#apptModal');
-    console.log("In editAppt");
 
     // Load Appointment Details
     $.ajax({

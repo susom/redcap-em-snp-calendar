@@ -59,10 +59,10 @@ class MSGraphAPI
         if (empty($token) or $token === false) {
 
             // Need to reauthorize since we cannot find a valid token
-            $this->log("Need to re-authorize - try to redirect page to Authorize.php");
+            SNP::log("Need to re-authorize - try to redirect page to Authorize.php");
             $this->authorizeUserRedirect();
 
-            // $this->log("Back from re-direct");
+            // SNP::log("Back from re-direct");
             // // header( 'Location: https://redcap.stanford.edu/plugins/scheduler/authorize.php' );
             //
             // $token = $this->findValidToken();
@@ -71,13 +71,14 @@ class MSGraphAPI
             // }
         }
 
-        // $this->log("Returning from getValidToken with token: $token");
+        // SNP::log("Returning from getValidToken with token: $token");
         return $token;
 
     }
 
     private function findValidToken ()
     {
+        SNP::log("In findValidToken");
         // Find the record that holds the active configuration and determine which record we should use for authorization
         $result = $this->loadActiveConfig();
         if ($result === false) {
@@ -93,12 +94,12 @@ class MSGraphAPI
             $token_expires = strtotime($this->request['expires_on']);
 
             $string = "This is now: " . $now . ", and this is expires on: " . $this->request['expires_on'] . ", strtotime: " . $token_expires;
-            $this->log($string);
+            SNP::log($string);
 
             if ($now < $token_expires) {
                 return $this->request['access_token'];
             } else {
-                $this->log("Need to refresh Token");
+                SNP::log("Need to refresh Token");
                 $result = $this->refreshTokens();
                 return $result;
             }
@@ -112,13 +113,14 @@ class MSGraphAPI
      */
     private function loadActiveConfig()
     {
+        SNP::log("In loadActiveConfig");
         // We are looking for the record that has the ACTIVE-CONFIG in the request_id (doesn't seem like it's needed)
         $filter = '[request_id] = "ACTIVE-CONFIG"';
         $q = REDCap::getData($this->token_pid, 'json', null, null, $this->token_event_id,
             null, false, false, false, $filter);
         if (empty($q)) {
             // There is no active record - set result to false so reauthorization can take place
-            $this->error("Unable to determine the last working authorization");
+            SNP::error("Unable to determine the last working authorization");
             $result = false;
         } else {
 
@@ -127,7 +129,7 @@ class MSGraphAPI
 
             if (empty($this_result['request_id'])) {
                 // No authorization record found - reauthorize
-                $this->error("There is no active authorization record.");
+                SNP::error("There is no active authorization record.");
                 $result = false;
             } else {
                 // Found the current active record - load it to make sure the token is still valid
@@ -147,6 +149,7 @@ class MSGraphAPI
      */
     private function loadRequest($request_id)
     {
+        SNP::log("In loadRequest");
         // Only load record if the inactive flag is not set and authorized user has a record.
         $filter = '';
         // $filter = '[inactive(1)] <> 1 and [username] === ' . $this->username;
@@ -156,7 +159,7 @@ class MSGraphAPI
 
         if (empty($q)) {
             // Unable to find record
-            $this->error("Unable to load active request id: " . $request_id);
+            SNP::error("Unable to load active request id: " . $request_id);
             return false;
         }
 
@@ -171,7 +174,7 @@ class MSGraphAPI
      */
     /*
     public function isRequestValid() {
-        $this->log("In isRequestValid");
+        SNP::log("In isRequestValid");
 
         $result = false;
 
@@ -182,22 +185,22 @@ class MSGraphAPI
             // request has timestamps
             $now = strtotime("now");
             if (strtotime($not_before) > $now) {
-                $this->error("It is too early to use this token");
+                SNP::error("It is too early to use this token");
             } elseif ($now >= strtotime($expires_on) ) {
-                $this->error("This token has expired");
+                SNP::error("This token has expired");
 
                 // Should we try to renew it here?  Probably
                 $result = $this->refreshTokens();
-                $this->log($result, "DEBUG", "Result from this->refreshTokens");
+                SNP::log($result, "DEBUG", "Result from this->refreshTokens");
 
             } else {
                 // This token is valid!
                 $result = true;
             }
         } else {
-            $this->error("The current request has invalid timestamps");
+            SNP::error("The current request has invalid timestamps");
         }
-        $this->log($result, "DEBUG", "Determining if Request is valid!");
+        SNP::log($result, "DEBUG", "Determining if Request is valid!");
         return $result;
     }
 */
@@ -207,13 +210,15 @@ class MSGraphAPI
      */
     public function authorizeUserRedirect()
     {
+        SNP::log("In authorizeUserRedirect");
+
         // Create record in REDCap to mark authentication request
         $next_id = Util::getNextId($this->token_pid,"record_id", $this->token_event_id, null);
-        $this->log($next_id, "DEBUG", "Next record number: $next_id");
+        SNP::log($next_id, "DEBUG", "Next record number: $next_id");
 
         $scope_verification_token = uniqid();
-        $this->log($scope_verification_token, "DEBUG", "New scope verification value:");
-        $this->log(md5($scope_verification_token), "DEBUG", "Hash of New scope verification value:");
+        SNP::log($scope_verification_token, "DEBUG", "New scope verification value:");
+        SNP::log(md5($scope_verification_token), "DEBUG", "Hash of New scope verification value:");
 
         $data = array(
             $next_id => array(
@@ -232,12 +237,12 @@ class MSGraphAPI
 //         $q = REDCap::saveData(calendarConfig::$config_pid, 'json', json_encode(array($data)));
         $q = REDCap::saveData($this->token_pid, 'array', $data);
 
-        $this->log($q, "DEBUG", "Created new request $next_id");
+        SNP::log($q, "DEBUG", "Created new request $next_id");
 
         if (!empty($q['errors'])) {
             // An error occurred creating the record
-            $this->log($q,"ERROR","Error creating new authorization record");
-            $this->error("Error creating new authorization record - see logs for details");
+            SNP::log($q,"ERROR","Error creating new authorization record");
+            SNP::error("Error creating new authorization record - see logs for details");
             return false;
         }
 
@@ -260,7 +265,7 @@ class MSGraphAPI
         );
         $qs = http_build_query($params);
         $url = $this->authorize_endpoint . "?" . $qs;
-        $this->log($url, "DEBUG", "Redirecting to Microsoft");
+        SNP::log($url, "DEBUG", "Redirecting to Microsoft");
         redirect($url);
         exit();
     }
@@ -272,13 +277,14 @@ class MSGraphAPI
      */
     public function processAuthorizationPostBack()
     {
+        SNP::log("In processAuthorizationPostBack");
         // Check for error from Microsoft
         if (isset($_POST['error'])) {
-            $this->log($_POST, "ERROR", "Error with incoming microsoft authorization");
+            SNP::log($_POST, "ERROR", "Error with incoming microsoft authorization");
             return false;
         } elseif (!isset($_POST['state'])) {
             // Missing POST state
-            $this->log($_POST, "DEBUG", "Invalid post-back - no state");
+            SNP::log($_POST, "DEBUG", "Invalid post-back - no state");
             return false;
         }
 
@@ -287,7 +293,7 @@ class MSGraphAPI
         $request_id = $state['request_id'];
         $hash = $state['hash'];
 
-        $this->log(implode(',', $state), "DEBUG", "Returned state: ");
+        SNP::log(implode(',', $state), "DEBUG", "Returned state: ");
 
         if ($type == 'authorize') {
 
@@ -295,20 +301,20 @@ class MSGraphAPI
             //$this->saveActiveConfig($request_id);
             if ($this->loadRequest($request_id) === false) {
                 // This request does not exist
-                $this->error("Unable to load postback request $request_id");
+                SNP::error("Unable to load postback request $request_id");
                 return false;
             };
-            $this->log($request_id, "DEBUG", "Loaded Request");
+            SNP::log($request_id, "DEBUG", "Loaded Request");
 
             /*
              * Verify hash in post matches hash's unique id from database
              */
             $scope_verification_token = $this->request['scope_verification_token'];
-            $this->log($scope_verification_token, "DEBUG", "This is scope verification token: $scope_verification_token for record_id: $request_id");
+            SNP::log($scope_verification_token, "DEBUG", "This is scope verification token: $scope_verification_token for record_id: $request_id");
 
             if ($hash != md5($scope_verification_token)) {
-                $this->error("Hash mismatch with request");
-                $this->log("Hash is $hash, scope_verification_token is $scope_verification_token, md5 of scope_verification_token is " . md5($scope_verification_token), "DEBUG", "Hash Verification Failed");
+                SNP::error("Hash mismatch with request");
+                SNP::log("Hash is $hash, scope_verification_token is $scope_verification_token, md5 of scope_verification_token is " . md5($scope_verification_token), "DEBUG", "Hash Verification Failed");
                 return false;
             }
 
@@ -335,7 +341,7 @@ class MSGraphAPI
                 $p2 = json_decode(base64_decode($parts[1]), true);
                 $data['jwt_payload'] = $p2;
             }
-            //$this->log($data, "DEBUG", "Data In");
+            //SNP::log($data, "DEBUG", "Data In");
 
 
             $data = array(
@@ -351,10 +357,10 @@ class MSGraphAPI
             $q = REDCap::saveData($this->token_pid, 'array', $data);
             if (!empty($q['errors'])) {
                 error("Error saving authorization data");
-                $this->log($q, "ERROR", "Error saving authorization data");
+                SNP::log($q, "ERROR", "Error saving authorization data");
                 return false;
             }
-            $this->log($request_id, "DEBUG", "Authorization Saved");
+            SNP::log($request_id, "DEBUG", "Authorization Saved");
 
             // Merge response into the cached request object (so we don't need to re-query the database)
             foreach ($data as $k => $v) {
@@ -371,7 +377,7 @@ class MSGraphAPI
             return $result;
         }
 
-        $this->log("Invalid type: $type","ERROR");
+        SNP::log("Invalid type: $type","ERROR");
         return false;
     }
 
@@ -381,6 +387,7 @@ class MSGraphAPI
      */
     public function saveActiveConfig($request_id) {
 
+        SNP::log("In saveActiveConfig");
         $data = array(
             'record_id'         => $this->active_config,
             'redcap_event_name' => $this->token_event_id,
@@ -390,8 +397,8 @@ class MSGraphAPI
 
         $q = REDCap::saveData($this->token_pid, 'json', json_encode(array($data)));
         if (!empty($q['errors'])) {
-            $this->log("$q", "ERROR", "Error at saveActiveConfig");
-            $this->error("Error setting saveActiveConfig");
+            SNP::log("$q", "ERROR", "Error at saveActiveConfig");
+            SNP::error("Error setting saveActiveConfig");
             return false;
         }
         return true;
@@ -403,7 +410,8 @@ class MSGraphAPI
      * With a new authentication code, obtain the first set of tokens
      */
     public function getTokensFromCode() {
-        $this->log("In getTokensFromCode");
+
+        SNP::log("In getTokensFromCode");
 
         $code = $this->request['code'];
         if ($code) {
@@ -419,10 +427,10 @@ class MSGraphAPI
                 'resource'      => $resource
             );
 
-            //$this->log($params, "DEBUG", "Get Tokens for $resource Params");
+            //SNP::log($params, "DEBUG", "Get Tokens for $resource Params");
             $q = http_post($url,$params);
             $result = json_decode($q,true);
-            //$this->log($result, "DEBUG", $resource);
+            //SNP::log($result, "DEBUG", $resource);
 
             $data = array(
                 'not_before'        => isset($result['not_before']) ? date('Y-m-d H:i:s', $result['not_before']) : '',
@@ -435,7 +443,7 @@ class MSGraphAPI
 
             foreach ($data as $k => $v) $this->request[$k] = $v;
 
-            $this->log($this->request, "DEBUG", "Saving Request");
+            SNP::log($this->request, "DEBUG", "Saving Request");
             $result = $this->saveRequest();
         } else {
             // No code
@@ -451,9 +459,8 @@ class MSGraphAPI
      */
     public function refreshTokens() {
 
-
         $string = "In refreshTokens" . implode(',', $this->request);
-        $this->log($string);
+        SNP::log($string);
 
         $refresh_token = $this->request['refresh_token'];
         if (!empty($refresh_token)) {
@@ -469,15 +476,15 @@ class MSGraphAPI
                 'resource'      => $resource
             );
 
-            $this->log($params, "DEBUG", "Refreshing token at $url");
+            SNP::log($params, "DEBUG", "Refreshing token at $url");
             $q = http_post($url,$params);
 
-            $this->log($q,"DEBUG", "RefreshToken Raw Response");
+            SNP::log($q,"DEBUG", "RefreshToken Raw Response");
             $result = json_decode($q,true);
             if (!empty($result['error'])) {
                 // Errors in response
-                $this->log($result, "ERROR", "Error refreshing token");
-                $this->error("Error refreshing token - see logs");
+                SNP::log($result, "ERROR", "Error refreshing token");
+                SNP::error("Error refreshing token - see logs");
                 return false;
             }
 
@@ -491,11 +498,11 @@ class MSGraphAPI
             );
             foreach ($data as $k => $v) $this->request[$k] = $v;
 
-            $this->log($this->active_request_id, "DEBUG", "Updating Request");
+            SNP::log($this->active_request_id, "DEBUG", "Updating Request");
             $result = $this->saveRequest();
             return ($result ? $this->request['access_token'] : $result);
         } else {
-            $this->log("Cannot refresh the MS token - no refresh token available");
+            SNP::log("Cannot refresh the MS token - no refresh token available");
             // No code
             $result = false;
         }
@@ -517,31 +524,24 @@ class MSGraphAPI
      * Save the current request to REDCap
      */
     public function saveRequest() {
-        $this->log("In saveRequest");
+        SNP::log("In saveRequest");
 
         $data = $this->request;
         $q = REDCap::saveData($this->token_pid, 'json', json_encode(array($data)));
         if (!empty($q['errors'])) {
-            $this->error("Error saving Request");
-            $this->log($q,"ERROR", "Error saving Request");
+            SNP::error("Error saving Request");
+            SNP::log($q,"ERROR", "Error saving Request");
             return false;
         }
-        $this->log("Request Saved", "DEBUG", "");
+        SNP::log("Request Saved", "DEBUG", "");
         return true;
-    }
-
-
-    // Add error to object and log it
-    public function error($message) {
-        $this->errors[] = $message;
-        $this->log($message, "ERROR", "");
     }
 
 
     // Return bootstrap error alert div if present
     public function getErrors() {
         $msg = array(); // = ""; //[] = "<div class='alert alert-info text-center mb-10 fade in' data-dismiss='alert'>";
-        foreach ($this->errors as $error) {
+        foreach (SNP::errors as $error) {
             $msg[] = "<p><strong>" . $error . "</strong></p>";
         }
 
@@ -553,7 +553,7 @@ class MSGraphAPI
     // Make an HTTP GET request
     private function http_get($url="", $timeout=null, $basic_auth_user_pass="", $headers=array())
     {
-        $this->log("In http_get");
+        SNP::log("In http_get");
 
         // Try using cURL first, if installed
         if (function_exists('curl_init'))
@@ -599,7 +599,7 @@ class MSGraphAPI
 // Send HTTP Post request and receive/return content
     private function http_post($url="", $params=array(), $timeout=null, $content_type='application/x-www-form-urlencoded', $basic_auth_user_pass="", $headers=array())
     {
-        $this->log("In http_post");
+        SNP::log("In http_post");
         // If params are given as an array, then convert to query string format, else leave as is
         if ($content_type == 'application/json') {
             // Send as JSON data
@@ -661,13 +661,6 @@ class MSGraphAPI
         }
         // Return false
         return false;
-    }
-
-
-    // Static log function for the MSApi Method
-    public static function log() {
-        $args = func_get_args();
-        call_user_func('SNP::log', $args);
     }
 
 
