@@ -124,7 +124,7 @@ class Util
         $rows = '';
 
         foreach ($row_data as $row_key=>$this_row) {
-            $rows .= '<tr>';
+            $rows .= '<tr id="' . $this_row['record_id']. '">';
             foreach ($this_row as $col_key=>$this_col) {
                 // Don't display the record_id because we are using the link instead
                 if($col_key === 'record_id') {

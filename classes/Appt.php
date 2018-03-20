@@ -334,7 +334,7 @@ class Appt
         $subject = $new_data['vis_start_time'] . " | " . $new_data['vis_ppid'] . " | " .
                     $this->studies_options[$new_data['vis_study']] . " | " .
                     $new_data['vis_name'] . " | " . $new_data['vis_note'];
-        $redcap_url = APP_PATH_WEBROOT . 'DataEntry/index.php?pid=' . $this->appt_pid . '&id=' . $new_data['record_id'] . '&event_id=' . $this->appt_event_id . '&page=calendar_events';
+        $redcap_url = substr(APP_PATH_WEBROOT_FULL, 0,  -1) . APP_PATH_WEBROOT . 'DataEntry/index.php?pid=' . $this->appt_pid . '&id=' . $new_data['record_id'] . '&event_id=' . $this->appt_event_id . '&page=appointment';
 
         // Convert the timestamps to local time
 
@@ -347,7 +347,7 @@ class Appt
         date_default_timezone_set('America/Los_Angeles');
         $now = strtotime("now");
         $body_content = "Notes: " . $new_data['vis_body'] . "\n\n" .
-                        "Redcap_URL: " . $redcap_url . "\n" .
+                        "Redcap_URL: " . $redcap_url . "\n\n" .
                         "Last Update Made By: " . $new_data['last_update_made_by'] . " @ " . date('Y-m-d H:i:s', $now);
 
         $appt_details = array(

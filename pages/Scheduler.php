@@ -10,27 +10,27 @@ $registry_pid = $module->getProjectSetting('registry_pid');
 $registry_first_event = $module->getProjectSetting('registry_first_event');
 
 // Retrieve Appointment project info
-$appt_pid = PROJECT_ID;
 $appt_event = $module->getProjectSetting('appt_event_id');
-//$record = isset($_GET['record']) && !empty($_GET['record']) ? $_GET['record'] : null;
-
 
 // Retrieve pid from calling project
-$pid = isset($_GET['pid']) && !empty($_GET['pid']) ? $_GET['pid'] : null;
+$appt_pid = isset($_GET['pid']) && !empty($_GET['pid']) ? $_GET['pid'] : null;
 
 //Limit to project, as way of restricting users...
+/*
 if (($pid <> $registry_pid) && (($pid <> $appt_pid))) {
     $msg =  "<b>ERROR:</b>$pid : This can only be run in the context the Allergy project (pid 10062).";
     echo "<p class='red' style='margin:20px 0 10px; text-align:center;'><b>$msg</b></p>";
     exit;
 }
-
+*/
 
 //Should the PPID and STUDY be reset here??
 $ppid = '';
 $study = '';
 $study_label = '';
 $demog_label = '';
+$record = null;
+$user = USERID;
 
 ///given the record id, should I try to get value of PPID (study_pid_current) and STUDY (study_name_current)?
 //no instead just come up with complete list of available ppid and put in a dropdown (see email)
@@ -41,7 +41,6 @@ $list = array('record_id', 'demo_first_name', 'demo_last_name','demo_middle_name
 $ppid_list = getPPID($registry_pid, $list, $registry_first_event);
 $select = renderPPIDList($appt_pid, $ppid_list);
 
-
 //if the fields are submitted then use those values for ppid and study
 if(isset($_POST['lookup'])) {
     // form submitted, now we can look at the data that came through
@@ -49,11 +48,9 @@ if(isset($_POST['lookup'])) {
     $record = $_POST['participant'];
 }
 
-
 if (!empty($_POST['userData'])) {
     // Is this used?
     $userData = $_POST['userData'];
-    echo "In userData: post: " . $userData . "<br>";
 
 //    persistUserChanges($userData, $appt_pid);
 
@@ -68,8 +65,6 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
     // Before displaying the modal, get the current state of the appointment
     // to initialize the modal.
     $record_id = $_POST['appt_record_id'];
-    $fields = array('record_id', 'vis_ppid', 'vis_study', 'vis_room', 'vis_name',
-                    'vis_date', 'vis_start_time', 'vis_end_time', 'vis_note', 'vis_status');
 
     // If the record_id is null, create an entry in Redcap before continuing so there will be record_id
     if (is_null($record_id) or empty($record_id)) {
@@ -78,6 +73,8 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
     }
 
     // Retrieve raw form of data - not labels
+    $fields = array('record_id', 'vis_ppid', 'vis_study', 'vis_room', 'vis_name',
+                    'vis_date', 'vis_start_time', 'vis_end_time', 'vis_note', 'vis_status');
     $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
     $result = array_merge($data[0],
         array('result'=>'success',
@@ -90,33 +87,28 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
     exit();
 }
 
-
 if (!empty($_POST['action']) and $_POST['action'] === "deleteAppointment") {
 
     // This is called when the Delete button is selected for a particular appointment.
     $deleteRecord = $_POST['deleteRecord'];
     SNP::log("Record to be Deleted: $deleteRecord");
 
-    $appt = new Appt($pid);
+    $appt = new Appt($appt_pid);
     $return = $appt->deleteCalendarEvent($deleteRecord, $appt_event);
 
     // Return the status of the delete
     $result = array('result'    => $return,
+                    'deleteRecord'  =>  $deleteRecord,
                     'message'   => 'Deleted record');
-
     header('Content-Type: application/json');
     print json_encode($result);
-
-    // Refresh page
-    //header('Location: '. $_SERVER['REQUEST_URI']);
     exit();
 }
-
 
 if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
     // This is called when the Save button is selected on the modal so the
     // will be saved in Outlook and Redcap
-    $record = array(
+    $change_record = array(
         "record_id"             => $_POST['record_id'],
         "vis_ppid"              => $_POST['vis_ppid'],
         "vis_study"             => $_POST['vis_study'],
@@ -127,80 +119,72 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
         "vis_room"              => $_POST['vis_room'],
         "vis_status"            => $_POST['vis_status'],
         "vis_note"              => $_POST['vis_note'],
-        "last_update_made_by"   => $_POST['last_update_made_by']
+        "last_update_made_by"   => $user
     );
+    
+    SNP::log("Record to be Deleted: " . $_POST['record_id']);
 
-    $appt = new Appt($pid);
-    $return = $appt->saveOrUpdateCalendarEvent($record);
-    SNP::log("Record to be Saved: " . $record['record_id'] . ", return from save: " . $return);
+    $appt = new Appt($appt_pid);
+    $return = $appt->saveOrUpdateCalendarEvent($change_record);
 
     // Return the status of the Save
     $result = array('result'    => $return,
+                    'data'      => $change_record,
                     'message'   => 'Saved record');
 
     header('Content-Type: application/json');
     print json_encode($result);
-
-    // Refresh page
-    // header('Location: '. $_SERVER['REQUEST_URI']);
-    // header("Refresh:0");
     exit();
 }
 
 //if $record is set then look up all the studies that this record_id is participating in.
 if ($record != null) {
-    $study = isset($ppid_list[$record]['study_name_current']) ? $ppid_list[$record]['study_name_current']: null;
-    $ppid = isset($ppid_list[$record]['study_pid_current']) ? $ppid_list[$record]['study_pid_current']: null;
-    $study_name1 = isset($ppid_list[$record]['study_name1']) ? $ppid_list[$record]['study_name1']: null;
-    $study_pid1 = isset($ppid_list[$record]['study_pid1']) ? $ppid_list[$record]['study_pid1']: null;
-    $study_name2 = isset($ppid_list[$record]['study_name2']) ? $ppid_list[$record]['study_name2']: null;
-    $study_pid2 = isset($ppid_list[$record]['study_pid2']) ? $ppid_list[$record]['study_pid2']: null;
-    $study_name3 = isset($ppid_list[$record]['study_name3']) ? $ppid_list[$record]['study_name3']: null;
-    $study_pid3 = isset($ppid_list[$record]['study_pid3']) ? $ppid_list[$record]['study_pid3']: null;
-    $study_name4 = isset($ppid_list[$record]['study_name4']) ? $ppid_list[$record]['study_name4']: null;
-    $study_pid4 = isset($ppid_list[$record]['study_pid4']) ? $ppid_list[$record]['study_pid4']: null;
+    $study = isset($ppid_list[$record]['study_name_current']) ? $ppid_list[$record]['study_name_current'] : null;
+    $ppid = isset($ppid_list[$record]['study_pid_current']) ? $ppid_list[$record]['study_pid_current'] : null;
+    $study_name1 = isset($ppid_list[$record]['study_name1']) ? $ppid_list[$record]['study_name1'] : null;
+    $study_pid1 = isset($ppid_list[$record]['study_pid1']) ? $ppid_list[$record]['study_pid1'] : null;
+    $study_name2 = isset($ppid_list[$record]['study_name2']) ? $ppid_list[$record]['study_name2'] : null;
+    $study_pid2 = isset($ppid_list[$record]['study_pid2']) ? $ppid_list[$record]['study_pid2'] : null;
+    $study_name3 = isset($ppid_list[$record]['study_name3']) ? $ppid_list[$record]['study_name3'] : null;
+    $study_pid3 = isset($ppid_list[$record]['study_pid3']) ? $ppid_list[$record]['study_pid3'] : null;
+    $study_name4 = isset($ppid_list[$record]['study_name4']) ? $ppid_list[$record]['study_name4'] : null;
+    $study_pid4 = isset($ppid_list[$record]['study_pid4']) ? $ppid_list[$record]['study_pid4'] : null;
 
     //friendly label for study
     $study_label = Util::getLabel($appt_pid, 'vis_study', $study);
 
     //Name and birthdate of participant
     $demog_label = getPPIDDemographic($registry_pid, $registry_first_event, $record);
-
 }
 
-
-$nav_tab_panel = ' <ul class="nav nav-tabs" role="tablist">';
+$nav_tab_panel = ' <ul class="nav nav-tabs" role="tablist" id="studytabs">';
 $tab_panel = '<div class="tab-content">';
 
 //render table for study_name_current
 if (($ppid != null) && ($study != null)) {
-
     $current_tab = "study-tab0";
     $table_id = "study-tab-0-dt";
     $current_study_label = Util::getLabel($appt_pid, 'vis_study', $study);
-
-    $tab_panel .= '<div role="tabpanel" class="tab-pane fade it active" id="'.$current_tab.'">';
-    $grid = getScheduleTable($table_id,$ppid, $study);
+    $tab_panel .= '<div role="tabpanel" class="tab-pane fade it active" id="' . $current_tab . '">';
+    $grid = getScheduleTable($table_id, $ppid, $study);
     $tab_panel .= $grid;
     $tab_panel .= '</div>';
     //render the navigation tab
-    $nav_tab_panel .= '<li role="presentation" class="active"><a href="#'.$current_tab.'" aria-controls="'.$current_tab.'" role="tab" data-toggle="tab">'.$ppid ." in<br> " .$current_study_label.'</a></li>';
+    $nav_tab_panel .= '<li role="presentation" class="active"><a data-toggle="tab" href="#' . $current_tab . '" aria-controls="' . $current_tab . '" role="tab">' . $ppid . " in<br> " . $current_study_label . '</a></li>';
 }
 
 //iterate over all the studies and see if they exist
 for ($i = 1; $i < 5; $i++) {
 
-    if ((${"study_name".$i} != null) && (${"study_pid".$i} != null)) {
-        $current_study_label = Util::getLabel($appt_pid, 'vis_study', ${"study_name".$i});
-        $current_tab = "study-tab".$i;
-
-        $table_id = "study-tab-".$i."-dt";
-        $tab_panel .= '<div role="tabpanel" class="tab-pane fade" id="'.$current_tab.'">';
-        $grid = getScheduleTable($table_id, ${"study_pid".$i}, ${"study_name".$i});
+    if ((${"study_name" . $i} != null) && (${"study_pid" . $i} != null)) {
+        $current_study_label = Util::getLabel($appt_pid, 'vis_study', ${"study_name" . $i});
+        $current_tab = "study-tab" . $i;
+        $table_id = "study-tab-" . $i . "-dt";
+        $tab_panel .= '<div role="tabpanel" class="tab-pane fade it" id="' . $current_tab . '">';
+        $grid = getScheduleTable($table_id, ${"study_pid" . $i}, ${"study_name" . $i});
         $tab_panel .= $grid;
         $tab_panel .= '</div>';
-        $nav_tab_panel .= '<li role="presentation"><a href="#'.$current_tab.'" aria-controls="'.$current_tab.'" role="tab" data-toggle="tab">'.${"study_pid".$i} ." in<br>" .$current_study_label.'</a></li>';
-
+        $nav_tab_panel .= '<li role="presentation"><a data-toggle="tab" href="#' . $current_tab . '" aria-controls="' . $current_tab . '" role="tab" data-toggle="tab">' . ${"study_pid" . $i} . " in<br>" . $current_study_label . '</a></li>';
     }
 }
 
@@ -402,7 +386,6 @@ function getPPIDDemographic($pid, $event = null, $record) {
  */
 function getPPID($pid, $target, $event = null) {
 
-//    echo "In getPPID: pid: " . $pid . ", target: " . $target . ", event: " . $event . "  <br>";
     $q = REDCap::getData($pid,'json', null, $target, $event);
     $results = json_decode($q, true);
 
@@ -426,10 +409,8 @@ function renderPPIDList($pid, $ppid_list) {
     /**
      * RECORD SELECTION DROP-DOWN
      */
-//    $select =  "<select class='input-lg' name='participant' id='participant' class='x-form-text x-form-field' style='max-width:350px;'>";
-    $select =  "<input class='input-lg'  list='participant' class='x-form-text x-form-field' style='max-width:350px;'>";
+    $select =  "<input class='input-med' name='participant' list='participant' class='x-form-text x-form-field' style='max-width:500px;'>";
     $select .=  "<datalist id='participant'>";
-    $select .= "<option selected disabled>Select Participant...</option>";
 
     // sort first by last name
     // usort($ppid_list, function($a, $b) {
@@ -444,22 +425,18 @@ function renderPPIDList($pid, $ppid_list) {
 
     foreach ($ppid_list as $this_record => $value)
     {
-        // Just for testing
-        if (($value['record_id'] == '9999') or ($value['record_id'] == '10085')) {
-            // Check for custom labels
-            $rec_id = $value['record_id'];
-            $last_name = $value['demo_last_name'];
-            $first_name = $value['demo_first_name'];
-            $dob = $value['demo_dob'];
-            $study_name_current = $value['study_name_current'];
-            $study_pid_current = $value['study_pid_current'];
-            $study_label = Util::getLabel($pid, 'vis_study', $study_name_current);
+        // Check for custom labels
+        $rec_id = $value['record_id'];
+        $last_name = $value['demo_last_name'];
+        $first_name = $value['demo_first_name'];
+        $dob = $value['demo_dob'];
+        $study_name_current = $value['study_name_current'];
+        $study_pid_current = $value['study_pid_current'];
+        $study_label = Util::getLabel($pid, 'vis_study', $study_name_current);
 
-            //Render drop-down options
-            $select .= "<option value='{$rec_id}'>{$last_name}, {$first_name} |ID: {$rec_id} |DOB: {$dob} | {$study_label} - {$study_pid_current}</option>";
-        }
+        //Render drop-down options
+        $select .= "<option value='{$rec_id}'>{$last_name}, {$first_name} |ID: {$rec_id} |DOB: {$dob} | {$study_label} - {$study_pid_current}</option>";
     }
-//    $select .= "</select>";
     $select .= "</datalist>";
 
     return $select;
@@ -480,12 +457,12 @@ function sortByOrder($a, $b) {
  * @return unknown
  */
 function getAppointments($project_id, $vis_ppid, $vis_study) {
-    global $appt_pid;
+    global $appt_event;
 
     $pid = intval($project_id);
     $filter1  = "[vis_ppid] = '{$vis_ppid}'";
     $filter_2 = "[vis_study] = '{$vis_study}'";
-    $q = REDCap::getData($pid, 'json', null, null, $appt_pid, null, false, false, false, $filter1 . " and " . $filter_2);
+    $q = REDCap::getData($pid, 'json', null, null, $appt_event, null, false, false, false, $filter1 . " and " . $filter_2);
 
     $results = json_decode($q, true);
 
@@ -567,22 +544,10 @@ function getDictionaryOptions($fieldname) {
 
 <div class="container">
     <h1>Scheduler</h1>
-    <br><br>
+    <h4>Select a participant:</h4>
     <form action="" method="post">
-
-        <input list="test">
-        <datalist id="test">
-            <option value="1234">1234</option>
-            <option value="2345">2345</option>
-            <option value="3456">3456</option>
-            <option value="4567">4567</option>
-            <option value="5678">5678</option>
-        </datalist>
-
-
-
         <?php echo $select?>
-        <button style="margin-top: -4px;" class="btn btn-lg btn-primary" name="lookup" onclick='window.location.reload(true);'>Look up participants</button>
+        <button style="margin-top: -4px; margin-left: 10px" class="btn btn-lg btn-primary" name="lookup" onclick='window.location.reload(true);'>Look up studies</button>
     </form>
 
     <?php
@@ -609,7 +574,7 @@ function getDictionaryOptions($fieldname) {
     <div class="modal fade" id="apptModal" tabindex="-1" role="dialog" aria-labelledby="apptModal" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <!-- Modal Header -->
+                <!-- Modal Header and start of form-->
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
@@ -623,6 +588,7 @@ function getDictionaryOptions($fieldname) {
                 <div class="modal-body">
                     <div class="panel panel-primary">
                         <div class="panel-heading"><strong>Appointment</strong></div>
+
                         <div class="panel-body">
                             <div class="input-group">
                                 <div style="visibility: hidden; display: inline;">
@@ -689,12 +655,13 @@ function getDictionaryOptions($fieldname) {
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                     <input type="hidden" name="record"/>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary action" data-action="save-appointment">Save</button>
+                    <button type="button" class="btn btn-primary action" data-action="save-appointment" >Save</button>
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
