@@ -19,7 +19,7 @@ class MSGraphAPI
     public $authorize_endpoint   = "https://login.windows.net/396573cb-f378-4b68-9bc8-15755c0c51f3/oauth2/authorize";
     public $client_id            = "560586dc-e7cc-48a6-956a-afd62decc413";  // V2 = "adb11225-133a-4db4-aae8-029f32e40720";
     public $response_type        = "code"; // id_token for jwt
-    public $redirect_uri         = "";      //https://redcap.stanford.edu/plugins/snp/calendar/portal/";
+    public $redirect_uri         = "https://redcap.stanford.edu/plugins/snp/calendar/portal/";
     public $response_mode        = "form_post";
     public $auth_scope           = "openid offline_access profile https://graph.microsoft.com/Calendar.ReadWrite";
     public $home_url             = "https://redcap.stanford.edu/plugins/scheduler/";
@@ -43,8 +43,9 @@ class MSGraphAPI
     {
         // Generate a non-auth uri for MS API Auth post-back as an external module
         // Please note that this url must also be updated in the azure portal for this application
+        // Looks like we can just give it the URL that was registered and MS Graph is happy.
         global $module;
-        $this->redirect_uri = $module->getUrl("pages/Authorize.php",true,true);
+//        $this->redirect_uri = $module->getUrl("pages/Authorize.php",true,true);
 
         $this->username = USERID;
         $this->token_pid = $token_pid;

@@ -87,7 +87,6 @@ class Appt
             // New appointment to save to Outlook
             $request = $this->requestURL . '/v1.0/me/calendars/' . $cal_id . '/events';
             $response = $this->post_request("save", $request, $header, $outlook_record);
-            // $response = $this->saveOutlookEvent($request, $header, $outlook_record);
 
             if ($response === FALSE) {
                 $string = "Could not save Redcap record " . $record['record_id'] . " in Outlook calendar!";

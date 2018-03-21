@@ -23,6 +23,9 @@ if (($pid <> $registry_pid) && (($pid <> $appt_pid))) {
     exit;
 }
 */
+$path = $module->getModulePath();
+$url = $module->getUrl($path);
+SNP::log("Module path: " . $path . ", and url: " . $url);
 
 //Should the PPID and STUDY be reset here??
 $ppid = '';
@@ -30,7 +33,6 @@ $study = '';
 $study_label = '';
 $demog_label = '';
 $record = null;
-$user = USERID;
 
 ///given the record id, should I try to get value of PPID (study_pid_current) and STUDY (study_name_current)?
 //no instead just come up with complete list of available ppid and put in a dropdown (see email)
@@ -83,6 +85,7 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
 
     // Return data for initialization
     header('Content-Type: application/json');
+    SNP::log("return value: ", json_encode($result));
     print json_encode($result);
     exit();
 }
@@ -119,13 +122,26 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
         "vis_room"              => $_POST['vis_room'],
         "vis_status"            => $_POST['vis_status'],
         "vis_note"              => $_POST['vis_note'],
-        "last_update_made_by"   => $user
+        "vis_category"          => $_POST['vis_category'],
+        "last_update_made_by"   => USERID
     );
     
-    SNP::log("Record to be Deleted: " . $_POST['record_id']);
-
+    $record_id = $_POST['record_id'];
     $appt = new Appt($appt_pid);
     $return = $appt->saveOrUpdateCalendarEvent($change_record);
+
+    // Save the label for visit category and visit status
+    $vis_status_choices  =  Util::getDictChoices($appt_pid, 'vis_status');
+    $vis_category_choices  =  Util::getDictChoices($appt_pid, 'vis_category');
+    $change_record["vis_category_label"] = $vis_category_choices[$change_record["vis_category"]];
+    $change_record["vis_status_label"] = $vis_status_choices[$change_record["vis_status"]];
+
+    $fields = array('record_id', 'vis_ppid', 'vis_study');
+    $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
+
+    SNP::log($data[0]["vis_ppid"], "This is the old ppid: ");
+    SNP::log($data[0]["vis_study"], "This is the old study: ");
+    SNP::log($vis_category_choices[$change_record["vis_ppid"]], "This is the new ppid ", $change_record["vis_study"], " and new study");
 
     // Return the status of the Save
     $result = array('result'    => $return,
