@@ -111,6 +111,10 @@ if (!empty($_POST['action']) and $_POST['action'] === "deleteAppointment") {
 if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
     // This is called when the Save button is selected on the modal so the
     // will be saved in Outlook and Redcap
+    $record_id = $_POST['record_id'];
+    $fields = array('record_id', 'vis_ppid', 'vis_study');
+    $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
+
     $change_record = array(
         "record_id"             => $_POST['record_id'],
         "vis_ppid"              => $_POST['vis_ppid'],
@@ -126,7 +130,6 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
         "last_update_made_by"   => USERID
     );
     
-    $record_id = $_POST['record_id'];
     $appt = new Appt($appt_pid);
     $return = $appt->saveOrUpdateCalendarEvent($change_record);
 
@@ -136,12 +139,11 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
     $change_record["vis_category_label"] = $vis_category_choices[$change_record["vis_category"]];
     $change_record["vis_status_label"] = $vis_status_choices[$change_record["vis_status"]];
 
-    $fields = array('record_id', 'vis_ppid', 'vis_study');
-    $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
+    $same_study = ($change_record["vis_study"] !== $data[0]["vis_study"] ? 1 : 0);
+    $same_person = ($change_record["vis_ppid"] !== $data[0]["vis_ppid"] ? 1 : 0);
 
-    SNP::log($data[0]["vis_ppid"], "This is the old ppid: ");
-    SNP::log($data[0]["vis_study"], "This is the old study: ");
-    SNP::log($vis_category_choices[$change_record["vis_ppid"]], "This is the new ppid ", $change_record["vis_study"], " and new study");
+    $change_record["display_off"] = (($same_study > 0 or $same_person > 0) ? 1: 0);
+    SNP::log($change_record["display_off"], "This is display off: ");
 
     // Return the status of the Save
     $result = array('result'    => $return,
