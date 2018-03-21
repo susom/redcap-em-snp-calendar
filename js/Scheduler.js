@@ -159,10 +159,10 @@ snp.updateFormData = function(data) {
     var cells = record_row.getElementsByTagName("td");
 
     // If the participant or study was changed, remove this row from the table since it no longer belongs
-    //if ((data['vis_study'] != saved_study) || (data['vis_ppid'] != saved_ppid)) {
-    //    console.log("Save study name: ", saved_study, " and saved ppid ", saved_ppid);
-    //    record_row.deleteRow(0);
-    //} else {
+    if (data['display_off'] > 0)  {
+        console.log("Deleting row in display table");
+        record_row.deleteElement;
+    } else {
         // Calculate the final duration of the appointment
         var start_time = data['vis_date'] + ' ' + data['vis_start_time'];
         var end_time = data['vis_date'] + ' ' + data['vis_end_time'];
@@ -176,5 +176,5 @@ snp.updateFormData = function(data) {
         cells[4].innerHTML = data['vis_date'];
         cells[5].innerHTML = data['vis_start_time'];
         cells[6].innerHTML = data['vis_status_label'];
-    //}
+    }
 };
