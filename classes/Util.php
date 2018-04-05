@@ -65,17 +65,22 @@ class Util
         return $fields_no_event;
     }
 
-    public static function getDictChoices($pid, $field) {
-        static $data_dictionary;
+    public static function getDictChoices($pid, $field)
+    {
+
+        static $data_dictionary = array();
+        static $pid_saved = null;
 
         if (empty($field)) {
             SNP::error("The variable list is undefined so cannot retrieve data dictionary options.");
         }
 
         // Retrieve data dictionary for this project
-        if (is_null($data_dictionary) or empty($data_dictionary)) {
+        if ($pid !== $pid_saved or is_null($data_dictionary) or empty($data_dictionary)) {
             $data_dictionary = REDCap::getDataDictionary($pid, 'array');
+            $pid_saved = $pid;
         }
+
         $choice_list = $data_dictionary[$field]['select_choices_or_calculations'];
         $exploded = explode('|',$choice_list);
 
@@ -95,32 +100,111 @@ class Util
         return $label;
     }
 
-
-    public static function renderTable($id, $header = array(), $results, $pid, $event=null, $add_delete_btn=true) {
+    public static function renderCalTable($id, $header = array(), $results, $pid, $event=null, $icons, $get_appt_id=null) {
         //Render table
         $grid = '<table id="' . $id . '" class="display" style="width: 100%">';
-        $grid .= self::renderHeaderRow($header, 'thead', $add_delete_btn);
-        $grid .= self::renderTableRows($results, $pid, $event, $add_delete_btn);
+        // If we are adding Edit, Delete and Copy buttons use the calendar functions
+        $grid .= self::renderCalHeaderRow($header, 'thead');
+        $grid .= self::renderCalTableRows($results, $pid, $event, $icons, $get_appt_id);
         $grid .= '</table>';
 
         return $grid;
     }
 
-    private static function renderHeaderRow($header = array(), $tag, $add_col=true) {
+    private static function renderCalHeaderRow($header = array(), $tag) {
+        $row = '<'.$tag.'><tr>';
+        foreach ($header as $col_key => $this_col) {
+            if ($this_col == 'Appt ID') {
+                $row .= '<th class="no-print">' . $this_col . '</th>';
+            } else {
+                $row .= '<th>' . $this_col . '</th>';
+            }
+        }
+        // Add an extra column to the header for the Update and Copy buttons
+        $row .= '<th class="no-print"> </th></tr></'.$tag.'>';
+        return $row;
+    }
+
+    private static function renderCalTableRows($row_data=array(), $appt_pid, $appt_event, $icons, $get_appt_id) {
+        $rows = '';
+
+        foreach ($row_data as $row_key=>$this_row) {
+            if ($get_appt_id == $this_row['record_id']) {
+                $rows .= '<tr style="color: red" id="' . $this_row['record_id'] . '">';
+            } else {
+                $rows .= '<tr id="' . $this_row['record_id'] . '">';
+            }
+            foreach ($this_row as $col_key=>$this_col) {
+                // Don't display the record_id because we are using the link instead
+                if($col_key === 'record_id') {
+                    $url = APP_PATH_WEBROOT . "DataEntry/index.php?page=appointment&pid=" . $appt_pid . "&id=" . $this_row[$col_key] .
+                        "&=event=" . $appt_event;
+                    $rows .= '<td class="no-print"><a href=' . $url . '>' .$this_col . '</a><br>';
+
+                    if (!is_null($this_row['vis_note']) and !empty($this_row['vis_note'])) {
+                        $rows .= '<img class="show-image" id="note' . $this_row['record_id'] . '" src="' . $icons["note"] . '" alt="Visit Note Available" >&nbsp;&nbsp;';
+                    } else {
+                        $rows .= '<img class="noshow-image" id="note' . $this_row['record_id'] . '" src="' . $icons["note"] . '" alt="Visit Note Available" >&nbsp;&nbsp;';
+                    }
+
+                    if ($this_row['vis_on_calendar'] == 1)  {
+                        $rows .= '<img class="show-image" id="note' . $this_row['record_id'] . '" src="' . $icons["calendar"] . '" alt="Appointment Saved on Calendar" >&nbsp;&nbsp;';
+                    } else {
+                        $rows .= '<img class="noshow-image" id="note' . $this_row['record_id'] . '" src="' . $icons["calendar"] . '" alt="Appointment Saved on Calendar" >&nbsp;&nbsp;';
+                    }
+                    $rows .= '</td>';
+                } else if (is_array($this_col)) {
+                    switch ($this_col[1]) {
+                        case "DATE":
+                            $rows .= '<td><input type="date" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '"></td>';
+                            break;
+                        case "SELECT":
+                            $rows .= self::renderSelectRow($this_row['record_id'] . '*' . $col_key, trim($this_col[0]), $this_col[2]);
+                            break;
+                        default:
+                            $rows .= '<td><input type="text" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '">$this_col[1]</td>';
+                    }
+                } else if (($col_key !== 'vis_note') && ($col_key !== 'vis_on_calendar')) {
+                    $rows .= '<td>' . $this_col . '</td>';
+                }
+            }
+
+            // Add the Save/Delete buttons
+            $rows .= '<td class="no-print">';
+            $record_identifier = 'data-record="' . $this_row['record_id'] . '"';
+            $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="edit-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-pencil"></span> Edit</button>';
+            $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="copy-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-copy"></span> Copy</button>';
+            $rows .= '</td>';
+
+            // End row
+            $rows .= '</tr>';
+        }
+
+        return $rows;
+    }
+
+    public static function renderApptTable($id, $header = array(), $results, $pid, $event=null) {
+        //Render table
+        // If this a display of all appointments, use the appointment functions
+        $grid = '<table id="' . $id . '" class="display" style="width: 100%">';
+        $grid .= self::renderApptHeaderRow($header, 'thead');
+        $grid .= self::renderApptTableRows($results, $pid, $event);
+        $grid .= '</table>';
+
+        return $grid;
+    }
+
+    private static function renderApptHeaderRow($header = array(), $tag) {
         $row = '<'.$tag.'><tr>';
         foreach ($header as $col_key => $this_col) {
             $row .=  '<th>'.$this_col.'</th>';
-        }
-
-        // Add an extra column to the header for the Update and Delete buttons
-        if ($add_col === true) {
-            $row .= '<th> </th>';
         }
         $row .= '</tr></'.$tag.'>';
         return $row;
     }
 
-    private static function renderTableRows($row_data=array(), $appt_pid, $appt_event, $add_delete_btn=true) {
+    private static function renderApptTableRows($row_data=array(), $appt_pid, $appt_event) {
+
         $rows = '';
 
         foreach ($row_data as $row_key=>$this_row) {
@@ -129,31 +213,22 @@ class Util
                 // Don't display the record_id because we are using the link instead
                 if($col_key === 'record_id') {
                     $url = APP_PATH_WEBROOT . "DataEntry/index.php?page=appointment&pid=" . $appt_pid . "&id=" . $this_row[$col_key] .
-                                "&=event=" . $appt_event;
-                    $rows .= '<td><a href=' . $url . '>' .$this_col . '</a>';
+                        "&=event=" . $appt_event;
+                    $rows .= '<td><a href=' . $url . '>' . $this_col . '</a></td>';
                 } else if (is_array($this_col)) {
                     switch ($this_col[1]) {
                         case "DATE":
-                            $rows .= '<td><input type="text" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '"></td>';
+                            $rows .= '<td><input type="date" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '"></td>';
                             break;
                         case "SELECT":
                             $rows .= self::renderSelectRow($this_row['record_id'] . '*' . $col_key, trim($this_col[0]), $this_col[2]);
                             break;
                         default:
-                            $rows .= '<td><input type="text" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '"></td>';
+                            $rows .= '<td><input type="text" id="' . $this_row['record_id'] . '*' . $col_key . '" name="' . $this_row['record_id'] . '*' . $col_key . '" value="' . $this_col[0] . '">$this_col[1]</td>';
                     }
                 } else {
                     $rows .= '<td>' . $this_col . '</td>';
                 }
-            }
-
-            // Add the Save/Delete buttons
-            if ($add_delete_btn === true and !is_null($this_row) and !empty($this_row)) {
-                $rows .= '<td>';
-                $record_identifier = 'data-record="' . $this_row['record_id'] . '"';
-                $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="edit-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-pencil"></span> Edit</button>';
-                $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="delete-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-remove"></span> Delete</button>';
-                $rows .= '</td>';
             }
 
             // End row
@@ -189,7 +264,7 @@ class Util
             // We are getting records for all appointments so do not specify a record_id
             $results = Util::getData($pid, $event_name, null, $fields, true);
             $headers = Util::getHeader($pid, $fields);
-            $grid = Util::renderTable('appt', $headers, $results, $pid, $event_name, false);
+            $grid = Util::renderApptTable('appt', $headers, $results, $pid, $event_name);
             return $grid;
         } catch (Exception $e) {
             throw $e;

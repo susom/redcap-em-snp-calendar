@@ -28,6 +28,7 @@ $(document).ready(function() {
     $('.container').on('click', 'button.action', function () {
         var action = $(this).data('action');
         var record_id = $(this).data('record');
+        var reg_record_id = document.getElementById("registry_record_id").value;
 
         console.log('Action: ' + action + ' on record ' + record_id);
 
@@ -35,15 +36,17 @@ $(document).ready(function() {
         if (action === "edit-appointment") {
             // If the Edit appointment button is selected
             snp.editAppt(record_id);
-        } else if (action === "delete-appointment") {
+//        } else if (action === "delete-appointment") {
             // If the Delete appointment button is selected
-            var confirm_text = "Are you sure you want to delete Appt ID = ".concat(record_id).concat("?");
-            var confirm = window.confirm(confirm_text);
-            if (confirm) {
-                snp.deleteAppt(record_id);
-            }
+//            var confirm_text = "Are you sure you want to delete Appt ID = ".concat(record_id).concat("?");
+//            var confirm = window.confirm(confirm_text);
+//            if (confirm) {
+//                snp.deleteAppt(record_id);
+//            }
+        } else if (action === "copy-appointment") {
+            snp.copyAppt(record_id, reg_record_id);
         } else if (action === "save-appointment") {
-            snp.saveAppt();
+            snp.saveAppt(reg_record_id);
         }
 
     });
@@ -78,6 +81,7 @@ snp.editAppt = function (record_id) {
             $('#apptModal').find('[name=vis_room]').val(data['vis_room']);
             $('#apptModal').find('[name=vis_note]').val(data['vis_note']);
             $('#apptModal').find('[name=vis_status]').val(data['vis_status']);
+            $('#apptModal').find('[name=vis_on_calendar]').val(data['vis_on_calendar']);
             modal.modal('toggle');
         }
     }).fail(function (jqXHR, textStatus, errorThrown) {
@@ -86,6 +90,7 @@ snp.editAppt = function (record_id) {
 
 };
 
+/*
 snp.deleteAppt = function (record_id) {
 
     // Delete the appointment in Redcap and in the Outlook calendar where it is stored.
@@ -95,23 +100,49 @@ snp.deleteAppt = function (record_id) {
             "action": "deleteAppointment",
             "deleteRecord": record_id
         },
-        success:function() {
-            //$('tr#'.concat(record_id)).removeData;
-            //location.href = location.href;
-        }
-    }).done(function (data) {
-        if (data.result !== "success") {
-            alert(data.message);
-        } else {
+        success:function(data) {
+            snp.updateFormData(data);
             var message = "Record ID = ".concat(record_id).concat(" was deleted!");
             alert(message);
+        },
+        error:function(jqXhr, textStatus, errorThrown) {
+            console.log("In deleteAppt, record ID: ", jqXHR, textStatus, errorThrown);
+            alert(errorThrown);
         }
+    }).done(function (data) {
     });
 };
+*/
 
-snp.saveAppt = function () {
+snp.saveAppt = function (reg_record_id) {
 
     var record_id = $('#apptModal').find('[name=appt_record_id]').val();
+
+    // Check the data to make sure all the necessary is available when saving data in Outlook
+    var on_cal = $('#apptModal').find('[name=vis_on_calendar]').val();
+    var appt_date = $('#apptModal').find('[name=vis_date]').val();
+    var start_time = $('#apptModal').find('[name=vis_start_time]').val();
+    var end_time = $('#apptModal').find('[name=vis_end_time]').val();
+    var room = $('#apptModal').find('[name=vis_room]').val();
+
+    // If these values aren't filled in, we can't save the appointment on the calendar so don't let
+    // the user try to save unless these values are filled in.
+    if ((on_cal == 1) && (appt_date === '')) {
+        alert("Please enter a visit date before saving.");
+        return;
+    }
+    if ((on_cal == 1) && ((start_time === '') || (start_time < '07:00') || (start_time > '18:00'))) {
+        alert("Please select a starting time between 7:00AM and 6:00PM before saving.");
+        return;
+    }
+    if ((on_cal == 1) && ((end_time === '') || (end_time < '07:00') || (end_time > '18:00'))) {
+        alert("Please enter an ending time between 7:00AM and 6:00PM before saving.");
+        return;
+    }
+    if ((on_cal == 1) && (room === null)) {
+        alert("Please select a room before saving.");
+        return;
+    }
 
     // Save this appointment in Outlook and then update Redcap so they are always in sync
     $.ajax({
@@ -122,18 +153,20 @@ snp.saveAppt = function () {
             "vis_ppid": $('#apptModal').find('[name=vis_ppid]').val(),
             "vis_study": $('#apptModal').find('[name=vis_study]').val(),
             "vis_name": $('#apptModal').find('[name=vis_name]').val(),
-            "vis_date": $('#apptModal').find('[name=vis_date]').val(),
-            "vis_start_time": $('#apptModal').find('[name=vis_start_time]').val(),
-            "vis_end_time": $('#apptModal').find('[name=vis_end_time]').val(),
-            "vis_room": $('#apptModal').find('[name=vis_room]').val(),
+            "vis_date": appt_date,
+            "vis_start_time": start_time,
+            "vis_end_time": end_time,
+            "vis_room": room,
             "vis_status": $('#apptModal').find('[name=vis_status]').val(),
             "vis_note": $('#apptModal').find('[name=vis_note]').val(),
-            "vis_category": $('#apptModal').find('[name=vis_category]').val()
+            "vis_category": $('#apptModal').find('[name=vis_category]').val(),
+            "vis_on_calendar": on_cal,
+            "registry_record_id" : reg_record_id
         },
         success:function(data) {
-            snp.updateFormData(data.data);
-            var message = "Record ID = ".concat(record_id).concat(" was saved!");
-            alert(message);
+            alert(data.message);
+            window.location = data.data['url'];
+            return false;
         },
         error:function(jqXhr, textStatus, errorThrown) {
             console.log("In saveAppt, record ID: ", jqXHR, textStatus, errorThrown);
@@ -151,30 +184,29 @@ snp.saveAppt = function () {
 
 };
 
-snp.updateFormData = function(data) {
+snp.copyAppt = function(record_id, reg_record_id) {
 
-    // Retrieve the row in the table that was updated
-    var record_id = data['record_id'];
-    var record_row = document.getElementById(record_id);
-    var cells = record_row.getElementsByTagName("td");
+    // Load Appointment Details
+    $.ajax({
+        type: "POST",
+        data: {
+            "action": "copyAppointment",
+            "appt_record_id": record_id,
+            "registry_record_id" : reg_record_id
+        },
+        success:function(data) {
+            alert(data.message);
+            window.location = data['url'];
+            return false;
+        },
+        error:function(jqXhr, textStatus, errorThrown) {
+            console.log("In copyAppt, record ID: ", jqXHR, textStatus, errorThrown);
+            alert(errorThrown);
+        }
 
-    // If the participant or study was changed, remove this row from the table since it no longer belongs
-    if (data['display_off'] > 0)  {
-        console.log("Deleting row in display table");
-        record_row.deleteElement;
-    } else {
-        // Calculate the final duration of the appointment
-        var start_time = data['vis_date'] + ' ' + data['vis_start_time'];
-        var end_time = data['vis_date'] + ' ' + data['vis_end_time'];
-        var datediff = (new Date(end_time)).getTime() - (new Date(start_time)).getTime();
-        var datediff_hrs = Math.abs(datediff) / 3600000;
+    }).done(function (data) {
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.log("In copyAppt, record ID: ", jqXHR, textStatus, errorThrown);
+    });
+}
 
-        // Update the cells on the scheduler page
-        cells[1].innerHTML = data['vis_name'];
-        cells[2].innerHTML = data['vis_category_label'];
-        cells[3].innerHTML = datediff_hrs;
-        cells[4].innerHTML = data['vis_date'];
-        cells[5].innerHTML = data['vis_start_time'];
-        cells[6].innerHTML = data['vis_status_label'];
-    }
-};
