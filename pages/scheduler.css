@@ -53,3 +53,56 @@
     -webkit-animation: fadeIn 1s;
     animation: fadeIn 1s
 }
+
+/* Image icons */
+.noshow-image {
+    height: 12px;
+    width: 12px;
+    align: middle;
+    display: none;
+}
+
+.show-image {
+    height: 12px;
+    width: 12px;
+    align: middle;
+    display: inline-block;
+}
+
+@media print {
+    .no-print {
+        display: none;
+    }
+}
+
+@page {
+    size: landscape;
+}
+
+.topnav {
+    width: 90%;
+    margin: auto;
+    text-align: left;
+    background-color: #75A1BF;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 5px;
+    padding-bottom: 1px;
+    border-radius: 10px;
+}
+
+.left {
+    text-align: left;
+}
+
+.right {
+    margin-top: 40px;
+    align: right;
+    text-align: right;
+    color: yellow;
+}
+
+.center {
+    column-span: 2;
+    text-
+}
