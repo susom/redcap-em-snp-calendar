@@ -127,18 +127,47 @@ snp.saveAppt = function (reg_record_id) {
 
     // If these values aren't filled in, we can't save the appointment on the calendar so don't let
     // the user try to save unless these values are filled in.
+    // Check for a valid visit date
     if ((on_cal == 1) && (appt_date === '')) {
         alert("Please enter a visit date before saving.");
         return;
     }
-    if ((on_cal == 1) && ((start_time === '') || (start_time < '07:00') || (start_time > '18:00'))) {
-        alert("Please select a starting time between 7:00AM and 6:00PM before saving.");
+
+    var today = new Date();
+    // Appt always comes back as local time and it assumes appt_date is in UTC time which it is not.
+    // I can't figure out how to tell Date that appt_date is already in local time.  So, instead,
+    // I am adding one day to the date diff.
+    var appt = new Date(appt_date);
+    var diffDays = parseInt((appt - today) / (1000 * 60 * 60 * 24)) + 1;
+    if ((on_cal == 1) && (diffDays > 180)) {
+        if (!confirm("Please confirm the entered visit date is greater than 180 days away.")) {
+            return;
+        }
+    }
+
+    // Check for valid starting times
+    if ((on_cal == 1) && (start_time === '')) {
+        alert("Please enter a visit starting time.");
         return;
     }
-    if ((on_cal == 1) && ((end_time === '') || (end_time < '07:00') || (end_time > '18:00'))) {
-        alert("Please enter an ending time between 7:00AM and 6:00PM before saving.");
+    if ((on_cal == 1) && ((start_time < '08:00') || (start_time > '18:00'))) {
+        if (!confirm("Please confirm the starting time is outside of 8:00AM to 6:00PM before saving.")) {
+            return;
+        }
+    }
+
+    // Check for valid ending times
+    if ((on_cal == 1) && (end_time === '')) {
+        alert("Please enter a visit ending time.");
         return;
     }
+    if ((on_cal == 1) && ((end_time < '07:00') || (end_time > '18:00'))) {
+        if (!confirm("Please confirm the ending time is outside of 8:00AM to 6:00PM before saving.")) {
+            return;
+        }
+    }
+
+    // Check for an entered room
     if ((on_cal == 1) && (room === null)) {
         alert("Please select a room before saving.");
         return;

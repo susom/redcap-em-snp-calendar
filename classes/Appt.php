@@ -244,6 +244,11 @@ class Appt
             exit();
         }
 
+        SNP::log("This is the header: " . json_encode($header));
+        SNP::log("This is the request: " . $request);
+        SNP::log("This is the request URL: " . $requestURL);
+        SNP::log("This is the body: " . $body);
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $requestURL);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
