@@ -100,18 +100,18 @@ class Util
         return $label;
     }
 
-    public static function renderCalTable($id, $header = array(), $results, $pid, $event=null, $icons, $get_appt_id=null) {
+    public static function renderCalTable($id, $header = array(), $results, $pid, $event=null, $icons, $get_appt_id=null, $update_rights=false) {
         //Render table
         $grid = '<table id="' . $id . '" class="display" style="width: 100%">';
         // If we are adding Edit, Delete and Copy buttons use the calendar functions
-        $grid .= self::renderCalHeaderRow($header, 'thead');
-        $grid .= self::renderCalTableRows($results, $pid, $event, $icons, $get_appt_id);
+        $grid .= self::renderCalHeaderRow($header, 'thead', $update_rights);
+        $grid .= self::renderCalTableRows($results, $pid, $event, $icons, $get_appt_id, $update_rights);
         $grid .= '</table>';
 
         return $grid;
     }
 
-    private static function renderCalHeaderRow($header = array(), $tag) {
+    private static function renderCalHeaderRow($header = array(), $tag, $update_rights) {
         $row = '<'.$tag.'><tr>';
         foreach ($header as $col_key => $this_col) {
             if ($this_col == 'Appt ID') {
@@ -120,12 +120,17 @@ class Util
                 $row .= '<th>' . $this_col . '</th>';
             }
         }
-        // Add an extra column to the header for the Update and Copy buttons
-        $row .= '<th class="no-print"> </th></tr></'.$tag.'>';
+        // If the person has Save/Update permissions, add an extra column to the header for the Update and Copy buttons
+        if ($update_rights) {
+            $row .= '<th class="no-print"> </th>';
+        }
+
+        $row .= '</tr></' . $tag . '>';
+
         return $row;
     }
 
-    private static function renderCalTableRows($row_data=array(), $appt_pid, $appt_event, $icons, $get_appt_id) {
+    private static function renderCalTableRows($row_data=array(), $appt_pid, $appt_event, $icons, $get_appt_id, $update_rights) {
         $rows = '';
 
         foreach ($row_data as $row_key=>$this_row) {
@@ -170,11 +175,13 @@ class Util
             }
 
             // Add the Save/Delete buttons
-            $rows .= '<td class="no-print">';
-            $record_identifier = 'data-record="' . $this_row['record_id'] . '"';
-            $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="edit-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-pencil"></span> Edit</button>';
-            $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="copy-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-copy"></span> Copy</button>';
-            $rows .= '</td>';
+            if ($update_rights) {
+                $rows .= '<td class="no-print">';
+                $record_identifier = 'data-record="' . $this_row['record_id'] . '"';
+                $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="edit-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-pencil"></span> Edit</button>';
+                $rows .= '<button type="button" class="btn btn-xs btn-primary action" data-action="copy-appointment" ' . $record_identifier . '><span class="glyphicon glyphicon-copy"></span> Copy</button>';
+                $rows .= '</td>';
+            }
 
             // End row
             $rows .= '</tr>';

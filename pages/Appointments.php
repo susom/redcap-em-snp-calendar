@@ -5,9 +5,6 @@ namespace Stanford\SNP;
 use \REDCap;
 use \Exception;
 
-// Include required files
-//require_once (dirname(__DIR__) . "/classes/Util.php");
-
 $module->log("Starting Appointment Report");
 $event_name = $module->getProjectSetting('appt_event_id');
 $pid = 10062;

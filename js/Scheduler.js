@@ -65,27 +65,51 @@ snp.editAppt = function (record_id) {
         data: {
             "action": "getAppointment",
             "appt_record_id": record_id
+        },
+        success:function(data) {
+            if (data.result !== "success") {
+                alert(data.message);
+            } else {
+                $('#apptModal').find('[name=appt_record_id]').val(data['record_id']);
+                $('#apptModal').find('[name=vis_ppid]').val(data['vis_ppid']);
+                $('#apptModal').find('[name=vis_study]').val(data['vis_study']);
+                $('#apptModal').find('[name=vis_name]').val(data['vis_name']);
+                $('#apptModal').find('[name=vis_date]').val(data['vis_date']);
+                $('#apptModal').find('[name=vis_start_time]').val(data['vis_start_time']);
+                $('#apptModal').find('[name=vis_end_time]').val(data['vis_end_time']);
+                $('#apptModal').find('[name=vis_room]').val(data['vis_room']);
+                $('#apptModal').find('[name=vis_note]').val(data['vis_note']);
+                $('#apptModal').find('[name=vis_status]').val(data['vis_status']);
+                $('#apptModal').find('[name=vis_on_calendar]').val(data['vis_on_calendar']);
+                modal.modal('toggle');
+                window.location = data.data['url'];
+                //return false;
+            }
+        },
+        error:function(jqXHR, exception) {
+            var msg = '';
+            if (jqXHR.status === 0) {
+                msg = 'Not connect.\n Verify Network.';
+            } else if (jqXHR.status == 404) {
+                msg = 'Requested page not found. [404]';
+            } else if (jqXHR.status == 500) {
+                msg = 'Internal Server Error [500].';
+            } else if (exception === 'parsererror') {
+                msg = 'Requested JSON parse failed.';
+            } else if (exception === 'timeout') {
+                msg = 'Time out error.';
+            } else if (exception === 'abort') {
+                msg = 'Ajax request aborted.';
+            } else {
+                msg = 'Uncaught Error.\n' + jqXHR.responseText;
+            }
+            console.log("Error in getAppt: ", msg);
+            alert(msg);
         }
     }).done(function (data) {
-
-        if (data.result !== "success") {
-            alert(data.message);
-        } else {
-            $('#apptModal').find('[name=appt_record_id]').val(data['record_id']);
-            $('#apptModal').find('[name=vis_ppid]').val(data['vis_ppid']);
-            $('#apptModal').find('[name=vis_study]').val(data['vis_study']);
-            $('#apptModal').find('[name=vis_name]').val(data['vis_name']);
-            $('#apptModal').find('[name=vis_date]').val(data['vis_date']);
-            $('#apptModal').find('[name=vis_start_time]').val(data['vis_start_time']);
-            $('#apptModal').find('[name=vis_end_time]').val(data['vis_end_time']);
-            $('#apptModal').find('[name=vis_room]').val(data['vis_room']);
-            $('#apptModal').find('[name=vis_note]').val(data['vis_note']);
-            $('#apptModal').find('[name=vis_status]').val(data['vis_status']);
-            $('#apptModal').find('[name=vis_on_calendar]').val(data['vis_on_calendar']);
-            modal.modal('toggle');
-        }
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        console.log("In editAppt, record ID: ", jqXHR, textStatus, errorThrown);
+        //console.log("In editAppt, record ID: ", jqXHR, textStatus, errorThrown);
+        console.log("Failed in editAppt, record ID: ", textStatus);
     });
 
 };
@@ -204,7 +228,7 @@ snp.saveAppt = function (reg_record_id) {
     }).done(function (data) {
     }).fail(function (jqXHR, textStatus, errorThrown) {
         alert(data.message);
-        console.log("In saveAppt, record ID: ", jqXHR, textStatus, errorThrown);
+        console.log("Failed in saveAppt, record ID: ", jqXHR, textStatus, errorThrown);
     });
 
     // close the modal
@@ -235,7 +259,7 @@ snp.copyAppt = function(record_id, reg_record_id) {
 
     }).done(function (data) {
     }).fail(function (jqXHR, textStatus, errorThrown) {
-        console.log("In copyAppt, record ID: ", jqXHR, textStatus, errorThrown);
+        console.log("Failed in copyAppt, record ID: ", jqXHR, textStatus, errorThrown);
     });
 }
 

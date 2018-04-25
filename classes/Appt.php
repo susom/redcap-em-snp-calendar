@@ -69,8 +69,11 @@ class Appt
         $msGraph = new msGraphApi($this->appt_pid, $this->token_event_id);
         $token = $msGraph->getValidToken();
         if (is_null($token) or empty($token)) {
-            SNP::log("Valid token not found - cannot update Outlook");
-            return false;
+            $return_msg = "Valid token not found - cannot update Outlook";
+            SNP::log($return_msg);
+            $response = array("status" => false,
+                            "message" => $return_msg);
+            return $response;
         }
 
         $header = array('Authorization: Bearer ' . $token,
@@ -81,8 +84,11 @@ class Appt
 
         // Retrieve the calendar ID for this appointment. The visit room coded value is the same number as the calendar record_id
         if (is_null($record['vis_room']) or empty($record['vis_room'])) {
-            SNP::log("Appointment cannot be saved in Outlook until a Room is selected!");
-            return false;
+            $return_msg = "Appointment cannot be saved in Outlook until a Room is selected!";
+            SNP::log($return_msg);
+            $response = array("status" => false,
+                            "message" => $return_msg);
+            return $response;
         }
 
         // Retrieve the calendar id and format the data to Outlook API
@@ -97,11 +103,11 @@ class Appt
             $response = $this->post_request("save", $request, $header, $outlook_record);
 
             if ($response === FALSE) {
-                $string = "Could not save Redcap record " . $record['record_id'] . " in Outlook calendar!";
+                $return_msg = "Could not save Redcap record " . $record['record_id'] . " in Outlook calendar!";
                 $return = false;
             } else {
-                $string = "Saved Redcap record " . $record['record_id'] . " in Outlook calendar!";
-                SNP::log($string);
+                $return_msg = "Saved Redcap record " . $record['record_id'] . " in Outlook calendar!";
+                SNP::log($return_msg);
 
                 // Update the saved data with the new data entered on the modal
                 foreach ($record as $field => $value) {
@@ -110,15 +116,10 @@ class Appt
 
                 // Now save the Outlook fields in Redcap
                 $rc_response = $this->saveRedcapAppt($response, $saved_record_data);
-                if ($rc_response === FALSE) {
-                    $string = "Did not save Outlook data in Redcap record " . $record['record_id'] . ". REDCAP is not up-to-date!!!";
-                    $return = false;
-                } else {
-                    $string = "Updated Redcap record(s) " . $rc_response . " with latest Outlook data!";
-                    $return = true;
-                }
+                $return = $rc_response["status"];
+                $return_msg = $rc_response["message"];
             }
-            SNP::log($string);
+            SNP::log($return_msg);
 
         } else {
             // Update existing Outlook appointment
@@ -141,18 +142,18 @@ class Appt
                             $saved_record_data[$field] = $value;
                         }
 
-                        $this->saveRedcapAppt($response, $saved_record_data);
-                        $string = "Save to new Outlook calendar was successful for record ID: " . $record['record_id'];
-                        $return = true;
+                        $rc_response = $this->saveRedcapAppt($response, $saved_record_data);
+                        $return = $rc_response["status"];
+                        $return_msg = $rc_response["message"];
                     } else {
-                        $string = "Save to new Outlook calendar was not successful for record ID: " . $record['record_id'];
+                        $return_msg = "Save to new Outlook calendar was not successful for record ID: " . $record['record_id'];
                         $return = false;
                     }
                 } else {
-                    $string = "Could not delete event from Outlook calendar so no updates were performed for record ID: ". $record['record_id'];
+                    $return_msg = "Could not delete event from Outlook calendar so no updates were performed for record ID: ". $record['record_id'];
                     $return = false;
                 }
-                SNP::log($string);
+                SNP::log($return_msg);
 
             } else {
                 // This appointment is just updated in the room so update this appointment in Outlook
@@ -161,27 +162,24 @@ class Appt
                 $response = $this->post_request("update", $request, $header, $outlook_record);
 
                 if ($response === FALSE) {
-                    $string = "Did not update Outlook event " . $record['record_id'] . ". REDCAP and Outlook are out of sync!!!";
+                    $return_msg = "Did not update Outlook event " . $record['record_id'] . ". REDCAP and Outlook are out of sync!!!";
                     $return = false;
                 } else {
-                    $string = "Updated Outlook event for record " . $record['record_id'];
-                    SNP::log($string);
+                    $return_msg = "Updated Outlook event for record " . $record['record_id'];
+                    SNP::log($return_msg);
 
                     // Now save the Outlook fields in Redcap
                     $rc_response = $this->saveRedcapAppt($response, $record);
-                    if ($rc_response === FALSE) {
-                        $string = "Did not update data in Redcap record " . $record['record_id'] . ". REDCAP is not up-to-date!!!";
-                        $return = false;
-                    } else {
-                        $string = "Updated Redcap record(s) " . $rc_response . " with latest Outlook data!";
-                        $return = true;
-                    }
-               }
+                    $return_msg = $rc_response["message"];
+                    $return = $rc_response["status"];
+              }
 
-               SNP::log($string);
+               SNP::log($return_msg);
             }
         }
-        return $return;
+        $response = array("status" => $return,
+                            "message" => $return_msg);
+        return $response;
     }
 
 
@@ -196,7 +194,8 @@ class Appt
             $msGraph = new msGraphApi($this->appt_pid, $this->token_event_id);
             $token = $msGraph->getValidToken();
             if (is_null($token) or empty($token)) {
-                SNP::log("Valid token not found - cannot delete Outlook event for record $record_id");
+                $return_msg = "Valid token not found - cannot delete Outlook event for record " . $record_id;
+                SNP::log($return_msg);
                 exit();
             }
 
@@ -205,26 +204,28 @@ class Appt
             $response = $this->post_request("delete", $request, $header);
 
             if ($response === false) {
-                $string = "Did not delete Outlook event " . $record_id . ". REDCAP is not up-to-date!!!";
+                $return_msg = "Did not delete Outlook event " . $record_id . ". REDCAP is not up-to-date!!!";
             } else {
-                $string = "Deleted Outlook event for record: " . $record_id;
-                SNP::log($string);
+                $return_msg = "Deleted Outlook event for record: " . $record_id;
+                SNP::log($return_msg);
 
                 // Now delete the Redcap record
                 $rc_response = $this->deleteRedcapAppt($record_id, $event_id, $user);
                 if ($rc_response === false) {
-                    $string = "Did not delete Redcap record " . $record_id . ". REDCAP does not match Outlook!!!";
+                    $return_msg = "Did not delete Redcap record " . $record_id . ". REDCAP does not match Outlook!!!";
                 } else {
-                    $string = "Deleted Redcap record " . $rc_response;
+                    $return_msg = "Deleted Redcap record " . $rc_response;
                     $return = true;
                 }
             }
         } else {
-            $string = "Record ID " . $record_id . " was not on a calendar so nothing was deleted.";
+            $return_msg = "Record ID " . $record_id . " was not on a calendar so nothing was deleted.";
             $return = true;
         }
-        SNP::log($string);
-        return $return;
+        SNP::log($return_msg);
+        $response = array("status" => $return,
+                            "message" => $return_msg);
+        return $response;
     }
 
 
@@ -260,6 +261,7 @@ class Appt
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         $http_description = self::translateHTTPCode($http_code);
+        SNP::log("This is the return value from post: " . $http_code);
 
         if ($http_code === $success_return_code) {
             return json_decode($json_response, true);
@@ -330,6 +332,7 @@ class Appt
             $create_date = $outlook_data['createdDateTime'];
             $last_mod = $outlook_data['lastModifiedDateTime'];
             $event_id = $outlook_data['id'];
+            $event_in_hex = bin2hex($outlook_data['id']);
             $icalid = $outlook_data['iCalUId'];
             $change_key = $outlook_data['changeKey'];
             $weblink = $outlook_data['webLink'];
@@ -345,6 +348,7 @@ class Appt
         $redcap_data[$record['record_id']][$this->appt_event_id] =
             array(
                 'eventid'               => $event_id,
+                'event_id_hex'          => $event_in_hex,
                 'createddatetime'       => $this->toDateTimeObject($create_date,'Y-m-d H:i:s'),
                 'lastmodifieddatetime'  => $this->toDateTimeObject($last_mod,'Y-m-d H:i:s'),
                 'icaluid'               => $icalid,
@@ -360,7 +364,8 @@ class Appt
                 'vis_status'            => $record['vis_status'],
                 'cal_weblink'           => $weblink,
                 'vis_on_calendar'       => $record['vis_on_calendar'],
-                'last_update_made_by'   => $record['last_update_made_by']
+                'last_update_made_by'   => $record['last_update_made_by'],
+                'email'                 => $record['email']
             );
 
         $rc_response = REDCap::saveData($this->appt_pid, 'array', $redcap_data, 'overwrite');
@@ -375,9 +380,13 @@ class Appt
         SNP::log($string);
 
         if ($rc_response['item_count'] > 0) {
-            return implode(',', $rc_response['ids']);
+            $response = array("status" => true,
+                                "message" => "Saved record " . implode(',', $rc_response['ids']) . " in redcap");
+            return $response;
         } else {
-            return FALSE;
+            $response = array("status" => false,
+                            "message" => "Could not save record " . $record['record_id']);
+            return $response;
         }
     }
 

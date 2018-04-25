@@ -19,7 +19,32 @@ $template_path = $module->getModulePath() . "data/template.txt";
 $icon_urls = array( "note"      => APP_PATH_IMAGES . "document_edit.png",
                     "calendar"  => APP_PATH_IMAGES . "date.png"
                     );
-SNP::log("Path to images: " . $icon_urls['note']);
+
+// See which role the user is in to see what privileges they should have
+$valid_user_roles = array("Update1" => "Project Admins",
+                          "Update2" => "Update Calendar",
+                          "Update3" => "Project Manager",
+                          "View1" => "View Calendar");
+$user = USERID;
+$rights = REDCap::getUserRights($user);
+if (is_null($rights) or empty($rights)) {
+    $return_string = "User " . $user . " does not have access to this project";
+    SNP::error($return_string);
+    exit($return_string);
+}
+
+$allowed = array_search($rights[USERID]['role_name'], $valid_user_roles, true);
+if ($allowed === false) {
+    print "<h2>You do not have permission to access this project. Please request access from Fran.</h2>";
+    $msg = USERID . " does not have access to project with user role " . $rights[USERID]['role_name'] . " - exiting";
+    SNP::log($msg);
+    exit();
+} else {
+    $view_only = (substr($allowed, 0, -1) === "View" ? true : false);
+    $update_rights = (substr($allowed, 0, -1) === "Update" ? true : false);
+    $msg = USERID . " has access to project with user role " . $rights[USERID]['role_name'];
+    SNP::log($msg);
+}
 
 //Should the PPID and STUDY be reset here??
 $ppid = '';
@@ -75,54 +100,63 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
 
     // Retrieve raw form of data - not labels
     $fields = array('record_id', 'vis_ppid', 'vis_study', 'vis_room', 'vis_name',
-                    'vis_date', 'vis_start_time', 'vis_end_time', 'vis_note', 'vis_status',
-                    'vis_on_calendar');
+        'vis_date', 'vis_start_time', 'vis_end_time', 'vis_note', 'vis_status',
+        'vis_on_calendar');
     $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
     $result = array_merge($data[0],
-        array('result'=>'success',
-                'message' => 'Found initial values')
-    );
+                array('result' => 'success',
+                    'message' => 'Found initial values')
+        );
 
     // Return data for initialization
     header('Content-Type: application/json');
-    SNP::log("return value: ", json_encode($result));
+    $return_msg = "Return json from getAppointment for record " . $record_id . " is: " . json_encode($result);
+    SNP::log($return_msg);
     print json_encode($result);
     exit();
 }
 
 if (!empty($_POST['action']) and $_POST['action'] === "copyAppointment") {
-    $record_id = $_POST['appt_record_id'];
-    $registry_record_id = $_POST['registry_record_id'];
+    if ($update_rights) {
+        $record_id = $_POST['appt_record_id'];
+        $registry_record_id = $_POST['registry_record_id'];
 
-    // Retrieve the appointment that we are cloning
-    $fields_to_clone = array('vis_ppid', 'vis_study', 'vis_name', 'vis_category', 'vis_duration',
-                             'vis_date', 'vis_start_time', 'vis_end_time', 'vis_room', 'vis_note',
-                             'vis_body', 'vis_status', 'vis_on_calendar', 'vis_comments');
-    $data = Util::getData($appt_pid, $appt_event, $record_id, $fields_to_clone, FALSE);
-    $data[0]['vis_on_calendar'] = 0;
-    $data[0]['last_update_made_by'] = USERID;
-    $new_record_id = addAppointmentRecord($appt_pid, 'record_id', $data[0]);
-    if (!is_null($new_record_id) and !empty($new_record_id)) {
-        $return_msg = "Created new record number " . $new_record_id . " by copying record id " . $record_id;
-        $return_status = 'success';
+        // Retrieve the appointment that we are cloning
+        $fields_to_clone = array('vis_ppid', 'vis_study', 'vis_name', 'vis_category', 'vis_duration',
+            'vis_date', 'vis_start_time', 'vis_end_time', 'vis_room', 'vis_note',
+            'vis_body', 'vis_status', 'vis_on_calendar', 'vis_comments');
+        $data = Util::getData($appt_pid, $appt_event, $record_id, $fields_to_clone, FALSE);
+        $data[0]['vis_on_calendar'] = 0;
+        $data[0]['last_update_made_by'] = USERID;
+        $new_record_id = addAppointmentRecord($appt_pid, 'record_id', $data[0]);
+        if (!is_null($new_record_id) and !empty($new_record_id)) {
+            $return_msg = "Created new record number " . $new_record_id . " by copying record id " . $record_id;
+            $return_status = 'success';
+        } else {
+            $return_msg = "Could not create new record by copying record id " . $record_id;
+            $return_status = 'error';
+        }
+
+        $result = array('result'    => $return_status,
+                        'data'      => $data[0],
+                        'message'   => $return_msg,
+                        'url'       => $module->getUrl("pages/Scheduler.php") . "&lookup=1&participant=" . $registry_record_id . "&apptid=" . $new_record_id
+        );
+
     } else {
-        $return_msg = "Could not create new record by copying record id " . $record_id;
-        $return_status = 'error';
+        $result = array('result'    => false,
+                        'data'      => null,
+                        'message'   => "You do not have permission to copy Appointments.",
+                        'url'       => null
+        );
     }
-    SNP::log($return_msg);
-
-    $result = array('result'    => $return_status,
-                    'data'      => $data[0],
-                    'message'   => $return_msg,
-                    'url'       => $module->getUrl("pages/Scheduler.php") . "&lookup=1&participant=" . $registry_record_id . "&apptid=" . $new_record_id
-    );
 
     // Return data for initialization
     header('Content-Type: application/json');
-    SNP::log("return value: ", json_encode($result));
+    $return_msg = "Return json from copyAppointment for record " . $record_id . " is: " . json_encode($result);
+    SNP::log($return_msg);
     print json_encode($result);
     exit();
-
 }
 
 /*
@@ -150,42 +184,59 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
     // This is called when the Save button is selected on the modal so the
     // will be saved in Outlook and Redcap
     $record_id = $_POST['record_id'];
-    $registry_record_id = $_POST['registry_record_id'];
-    $fields = array('record_id', 'vis_ppid', 'vis_study', 'icaluid');
-    $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
-    $change_record = array(
-        "record_id"             => $record_id,
-        "vis_ppid"              => $_POST['vis_ppid'],
-        "vis_study"             => $_POST['vis_study'],
-        "vis_name"              => $_POST['vis_name'],
-        "vis_date"              => $_POST['vis_date'],
-        "vis_start_time"        => $_POST['vis_start_time'],
-        "vis_end_time"          => $_POST['vis_end_time'],
-        "vis_room"              => $_POST['vis_room'],
-        "vis_status"            => $_POST['vis_status'],
-        "vis_note"              => $_POST['vis_note'],
-        "vis_category"          => $_POST['vis_category'],
-        "vis_on_calendar"       => $_POST['vis_on_calendar'],
-        "url"                   => $module->getUrl("pages/Scheduler.php") . "&lookup=1&participant=" . $registry_record_id . "&apptid=" . $record_id,
-        "last_update_made_by"   => USERID
-    );
+    if ($update_rights) {
+        // Retrieve the email address for this participant
+        $registry_record_id = $_POST['registry_record_id'];
+        $reg_fields = array('demo_self_email');
+        $reg_data = Util::getData($registry_pid, $registry_first_event, $registry_record_id, $reg_fields, FALSE);
 
-    $appt = new Appt($appt_pid);
-    if ($change_record['vis_on_calendar'] == 1) {
-        // The user wants to save or update this appointment
-        $return = $appt->saveOrUpdateCalendarEvent($change_record);
-    } else if (!is_null($data[0]['icaluid']) and !empty($data[0]['icaluid']) and ($change_record['vis_on_calendar'] == 0)) {
-        // This appointment was stored on a calendar and the user wants to delete it
-        $return = $appt->deleteCalendarEvent($record_id, $appt_event, USERID);
-    } else if ((is_null($data[0]['icaluid']) or empty($data[0]['icaluid'])) and ($change_record['vis_on_calendar'] == 0)) {
-        // This appointment was not stored on a calendar and the user wants to update the record
-        $return = $appt->saveRedcapAppt(null, $change_record);
+        // Retrieve the current data stored in Redcap so we can tell what has changed
+        $fields = array('record_id', 'vis_ppid', 'vis_study', 'icaluid');
+        $data = Util::getData($appt_pid, $appt_event, $record_id, $fields, FALSE);
+        $change_record = array(
+            "record_id"         => $record_id,
+            "vis_ppid"          => $_POST['vis_ppid'],
+            "vis_study"         => $_POST['vis_study'],
+            "vis_name"          => $_POST['vis_name'],
+            "vis_date"          => $_POST['vis_date'],
+            "vis_start_time"    => $_POST['vis_start_time'],
+            "vis_end_time"      => $_POST['vis_end_time'],
+            "vis_room"          => $_POST['vis_room'],
+            "vis_status"        => $_POST['vis_status'],
+            "vis_note"          => $_POST['vis_note'],
+            "vis_category"      => $_POST['vis_category'],
+            "vis_on_calendar"   => $_POST['vis_on_calendar'],
+            "email"             => $reg_data[0]['demo_self_email'],
+            "url"               => $module->getUrl("pages/Scheduler.php") . "&lookup=1&participant=" . $registry_record_id . "&apptid=" . $record_id,
+            "last_update_made_by" => USERID
+        );
+
+        $appt = new Appt($appt_pid);
+        if ($change_record['vis_on_calendar'] == 1) {
+            // The user wants to save or update this appointment
+            $return = $appt->saveOrUpdateCalendarEvent($change_record);
+        } else if (!is_null($data[0]['icaluid']) and !empty($data[0]['icaluid']) and ($change_record['vis_on_calendar'] == 0)) {
+            // This appointment was stored on a calendar and the user wants to delete it
+            $return = $appt->deleteCalendarEvent($record_id, $appt_event, USERID);
+        } else if ((is_null($data[0]['icaluid']) or empty($data[0]['icaluid'])) and ($change_record['vis_on_calendar'] == 0)) {
+            // This appointment was not stored on a calendar and the user wants to update the record
+            $return = $appt->saveRedcapAppt(null, $change_record);
+        }
+
+        // Return the status of the Save
+        $result = array('result'    => $return['status'],
+                        'data'      => $change_record,
+                        'message'   => $return['message']);
+    } else {
+        // Return the status of the Save
+        $result = array('result'    => false,
+                        'data'      => null,
+                        'message'   => "You do not have permission to save/update Appointments.");
     }
 
-    // Return the status of the Save
-    $result = array('result'    => $return,
-                    'data'      => $change_record,
-                    'message'   => 'Saved or updated record ' . $record_id);
+    // Log this update
+    $return_msg = "Return json from saveAppointment for record " . $record_id . " is: " . json_encode($result);
+    SNP::log($return_msg);
 
     header('Content-Type: application/json');
     print json_encode($result);
@@ -267,7 +318,7 @@ $nav_tab_panel .= '</ul>';
 
 // Build table for the selected participant
 function getScheduleTable($id, $ppid, $study) {
-    global $appt_pid, $appt_event, $icon_urls, $appt_id, $active_tab;
+    global $appt_pid, $appt_event, $icon_urls, $appt_id, $active_tab, $update_rights;
 
     //get the APPOINTMENT from the appointment project
     $appts = getAppointments($appt_pid, $ppid, $study);
@@ -278,8 +329,15 @@ function getScheduleTable($id, $ppid, $study) {
         $active_tab = array_search($appt_id, $list_of_record_ids);
     }
 
-    // Look at the template.txt file and see if this study has a schedule template
-    $this_template = getTemplate($study);
+    // If we have rights to add appointments, go retrieve the template because we may need to create new Redcap
+    // records based on the template. If we do not have permission to create to records, no need to retrieve
+    // the template because we cannot create new records anyway.
+    if ($update_rights) {
+        //Look at the template.txt file and see if this study has a schedule template
+        $this_template = getTemplate($study);
+    } else {
+        $this_template = null;
+    }
 
     //add the additional columns to the template table (for ex: recommended dates and windows)
     $this_schedule = calcTemplateDates($appts, $this_template, $appt_pid, $ppid, $study);
@@ -288,7 +346,7 @@ function getScheduleTable($id, $ppid, $study) {
     $header = array("Appt ID", "Visit Name", "Visit Category", "Dur (hrs)", "Visit Date", "Visit Time", "Status", "Target Date", "Up Window", "Down Window");
 
     // display this table with the projected appointment ranges
-    $grid = Util::renderCalTable($id, $header, $this_schedule, $appt_pid, $appt_event, $icon_urls, $appt_id);
+    $grid = Util::renderCalTable($id, $header, $this_schedule, $appt_pid, $appt_event, $icon_urls, $appt_id, $update_rights);
 
     $grid .= '<button type="button" class="btn btn-med btn-primary action no-print" data-action="edit-appointment" data-record="">Create New Appt</button>';
     return $grid;
@@ -654,6 +712,8 @@ function getDictionaryOptions($fieldname) {
     <link rel="icon" type="image/png" href="https://med.stanford.edu/etc/clientlibs/sm/images/favicon.ico">
 </head>
 <body>
+
+
 <style type="text/css">
     #template {
         margin: 0px 20px;
@@ -664,9 +724,16 @@ function getDictionaryOptions($fieldname) {
     <table width="100%">
         <tr>
             <th style="colspan=2">
-                <h2 style="color: white">Scheduler</h2>
+                <div class="left">
+                    <h2 style="color: white">Scheduler</h2>
+                </div>
             </th>
             <th>
+                <div class="right-white">
+                    <button class="btn btn-med btn-primary no-print">
+                        <a target="_blank" style="text-decoration: none; color: white" href="<?php echo $module->getUrl("pages/checkForDeltas.php") ?>">Check for Calendar Changes</a>
+                    </button>
+                </div>
             </th>
         </tr>
         <tr>

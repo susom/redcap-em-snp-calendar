@@ -1,4 +1,42 @@
 {
+        "AnaptysBio": { 
+            "Screening 1": {
+            "visit_name": "Screening 1",
+            "visit_category": "Screening",
+            "duration": 8,
+            "offset": "-",
+            "days_from_offset": 7,
+            "lower_window": 7,
+            "upper_window": 0
+          },
+            "Screening 2": {
+             "visit_name": "Screening 2",
+            "visit_category": "Screening",
+            "duration": 8,
+            "offset": "Screening 1",
+            "days_from_offset": 14,
+            "lower_window": 7,
+            "upper_window": 0
+          },
+            "Day 1" : {
+            "visit_name": "Day 1",
+            "visit_category": "Infusion + Labs",
+            "duration": 8,
+            "offset": "Screening 1",
+            "days_from_offset": 1,
+            "lower_window": 0,
+            "upper_window": 0
+          },
+        "Day 2" :{
+            "visit_name": "Day 2",
+            "visit_category": "Labs Only",
+            "duration": 1,
+            "offset": "Day 1",
+            "days_from_offset": 5,
+            "lower_window": 0,
+            "upper_window": 0
+          }
+        },
         "ASTELLAS": {
               "Screening 1": {
 			    "visit_name": "Screening 1",

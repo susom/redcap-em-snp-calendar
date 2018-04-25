@@ -6,15 +6,29 @@ namespace Stanford\SNP;
 require_once("classes/Appt.php");
 require_once("classes/MSGraphAPI.php");
 require_once("classes/Util.php");
+require_once("classes/calendarChangeEvents.php");
 
 
 class SNP extends \ExternalModules\AbstractExternalModule
 {
 
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Project-specific constructor
+        global $project_id;
+        if ($project_id > 0) {
+            self::log("In project $project_id");
 
 
 
 
+        } else {
+            self::log("Not in project");
+        }
+
+    }
 
 
     public static function log($obj = "Here", $detail = null, $type = "INFO") {

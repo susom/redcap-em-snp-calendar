@@ -39,11 +39,17 @@
         "name": "SNP Appointments",
         "icon": "gear",
         "url": "pages/Appointments.php"
+      },
+      {
+        "name": "SNP MS Authenication",
+        "icon": "gear",
+        "url": "pages/MSAuthenicate.php"
       }
     ]
   },
 
   "no-auth-pages": [
+    "pages/MSCallBack"
   ],
 
   "system-settings": [
