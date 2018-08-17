@@ -29,7 +29,7 @@ $user = USERID;
 $rights = REDCap::getUserRights($user);
 if (is_null($rights) or empty($rights)) {
     $return_string = "User " . $user . " does not have access to this project";
-    SNP::error($return_string);
+    SNP::sError($return_string);
     exit($return_string);
 }
 
@@ -37,13 +37,13 @@ $allowed = array_search($rights[USERID]['role_name'], $valid_user_roles, true);
 if ($allowed === false) {
     print "<h2>You do not have permission to access this project. Please request access from Fran.</h2>";
     $msg = USERID . " does not have access to project with user role " . $rights[USERID]['role_name'] . " - exiting";
-    SNP::log($msg);
+    SNP::sLog($msg);
     exit();
 } else {
     $view_only = (substr($allowed, 0, -1) === "View" ? true : false);
     $update_rights = (substr($allowed, 0, -1) === "Update" ? true : false);
     $msg = USERID . " has access to project with user role " . $rights[USERID]['role_name'];
-    SNP::log($msg);
+    SNP::sLog($msg);
 }
 
 //Should the PPID and STUDY be reset here??
@@ -111,7 +111,7 @@ if (!empty($_POST['action']) and $_POST['action'] === "getAppointment") {
     // Return data for initialization
     header('Content-Type: application/json');
     $return_msg = "Return json from getAppointment for record " . $record_id . " is: " . json_encode($result);
-    SNP::log($return_msg);
+    SNP::sLog($return_msg);
     print json_encode($result);
     exit();
 }
@@ -154,7 +154,7 @@ if (!empty($_POST['action']) and $_POST['action'] === "copyAppointment") {
     // Return data for initialization
     header('Content-Type: application/json');
     $return_msg = "Return json from copyAppointment for record " . $record_id . " is: " . json_encode($result);
-    SNP::log($return_msg);
+    SNP::sLog($return_msg);
     print json_encode($result);
     exit();
 }
@@ -236,7 +236,7 @@ if (!empty($_POST['action']) and $_POST['action'] === "saveAppointment") {
 
     // Log this update
     $return_msg = "Return json from saveAppointment for record " . $record_id . " is: " . json_encode($result);
-    SNP::log($return_msg);
+    SNP::sLog($return_msg);
 
     header('Content-Type: application/json');
     print json_encode($result);
@@ -526,7 +526,7 @@ function addAppointmentRecord($pid, $id_field, $data) {
     $results = REDCap::saveData($pid,'json', json_encode(array($data)), 'overwrite', 'YMD');
     if (! empty($results['errors'])) {
         $msg = "Error creating record - ask administrator to review logs: " . json_encode($results);
-        SNP::error($msg);
+        SNP::sError($msg);
         return null;
     }
     return $nextID;
@@ -659,7 +659,7 @@ function getTemplate($vis_study) {
 
     $json_text = file_get_contents($template_path);
     if ($json_text === false) {
-        SNP::error("Could not read template file: " . $template_path);
+        SNP::sError("Could not read template file: " . $template_path);
     }
 
     $template = json_decode($json_text, true);

@@ -64,13 +64,13 @@ class Appt
 
     public function saveOrUpdateCalendarEvent($record)
     {
-        SNP::log("Saving record: " . $record['record_id']);
+        SNP::sLog("Saving record: " . $record['record_id']);
         // Make sure we have a valid token before making a request
         $msGraph = new msGraphApi($this->appt_pid, $this->token_event_id);
         $token = $msGraph->getValidToken();
         if (is_null($token) or empty($token)) {
             $return_msg = "Valid token not found - cannot update Outlook";
-            SNP::log($return_msg);
+            SNP::sLog($return_msg);
             $response = array("status" => false,
                             "message" => $return_msg);
             return $response;
@@ -85,7 +85,7 @@ class Appt
         // Retrieve the calendar ID for this appointment. The visit room coded value is the same number as the calendar record_id
         if (is_null($record['vis_room']) or empty($record['vis_room'])) {
             $return_msg = "Appointment cannot be saved in Outlook until a Room is selected!";
-            SNP::log($return_msg);
+            SNP::sLog($return_msg);
             $response = array("status" => false,
                             "message" => $return_msg);
             return $response;
@@ -107,7 +107,7 @@ class Appt
                 $return = false;
             } else {
                 $return_msg = "Saved Redcap record " . $record['record_id'] . " in Outlook calendar!";
-                SNP::log($return_msg);
+                SNP::sLog($return_msg);
 
                 // Update the saved data with the new data entered on the modal
                 foreach ($record as $field => $value) {
@@ -119,7 +119,7 @@ class Appt
                 $return = $rc_response["status"];
                 $return_msg = $rc_response["message"];
             }
-            SNP::log($return_msg);
+            SNP::sLog($return_msg);
 
         } else {
             // Update existing Outlook appointment
@@ -153,7 +153,7 @@ class Appt
                     $return_msg = "Could not delete event from Outlook calendar so no updates were performed for record ID: ". $record['record_id'];
                     $return = false;
                 }
-                SNP::log($return_msg);
+                SNP::sLog($return_msg);
 
             } else {
                 // This appointment is just updated in the room so update this appointment in Outlook
@@ -166,7 +166,7 @@ class Appt
                     $return = false;
                 } else {
                     $return_msg = "Updated Outlook event for record " . $record['record_id'];
-                    SNP::log($return_msg);
+                    SNP::sLog($return_msg);
 
                     // Now save the Outlook fields in Redcap
                     $rc_response = $this->saveRedcapAppt($response, $record);
@@ -174,7 +174,7 @@ class Appt
                     $return = $rc_response["status"];
               }
 
-               SNP::log($return_msg);
+               SNP::sLog($return_msg);
             }
         }
         $response = array("status" => $return,
@@ -195,7 +195,7 @@ class Appt
             $token = $msGraph->getValidToken();
             if (is_null($token) or empty($token)) {
                 $return_msg = "Valid token not found - cannot delete Outlook event for record " . $record_id;
-                SNP::log($return_msg);
+                SNP::sLog($return_msg);
                 exit();
             }
 
@@ -207,7 +207,7 @@ class Appt
                 $return_msg = "Did not delete Outlook event " . $record_id . ". REDCAP is not up-to-date!!!";
             } else {
                 $return_msg = "Deleted Outlook event for record: " . $record_id;
-                SNP::log($return_msg);
+                SNP::sLog($return_msg);
 
                 // Now delete the Redcap record
                 $rc_response = $this->deleteRedcapAppt($record_id, $event_id, $user);
@@ -222,7 +222,7 @@ class Appt
             $return_msg = "Record ID " . $record_id . " was not on a calendar so nothing was deleted.";
             $return = true;
         }
-        SNP::log($return_msg);
+        SNP::sLog($return_msg);
         $response = array("status" => $return,
                             "message" => $return_msg);
         return $response;
@@ -241,14 +241,14 @@ class Appt
             $success_return_code = 204;
             $which_post_request = "DELETE";
         } else {
-            SNP::error("APPT:", "Bad post request: " . $request);
+            SNP::sError("APPT:", "Bad post request: " . $request);
             exit();
         }
 
-        SNP::log("This is the header: " . json_encode($header));
-        SNP::log("This is the request: " . $request);
-        SNP::log("This is the request URL: " . $requestURL);
-        SNP::log("This is the body: " . $body);
+        SNP::sLog("This is the header: " . json_encode($header));
+        SNP::sLog("This is the request: " . $request);
+        SNP::sLog("This is the request URL: " . $requestURL);
+        SNP::sLog("This is the body: " . $body);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $requestURL);
@@ -261,7 +261,7 @@ class Appt
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         $http_description = self::translateHTTPCode($http_code);
-        SNP::log("This is the return value from post: " . $http_code);
+        SNP::sLog("This is the return value from post: " . $http_code);
 
         if ($http_code === $success_return_code) {
             return json_decode($json_response, true);
@@ -314,13 +314,13 @@ class Appt
         $redcap_data[$record_id][$this->appt_event_id] = $data_to_save;
 
         $rc_response = REDCap::saveData($this->appt_pid, 'array', $redcap_data, 'overwrite');
-        SNP::log("Error responses from Delete Redcap Data: " . implode(',',$rc_response['errors']));
-        SNP::log("Warning responses from Delete Redcap Data: " . implode(',',$rc_response['warnings']));
-        SNP::log("IDs from Delete Redcap Data: " . implode(',',$rc_response['ids']));
-        SNP::log("Item count from Delete Redcap Data: " . $rc_response['item_count']);
+        SNP::sLog("Error responses from Delete Redcap Data: " . implode(',',$rc_response['errors']));
+        SNP::sLog("Warning responses from Delete Redcap Data: " . implode(',',$rc_response['warnings']));
+        SNP::sLog("IDs from Delete Redcap Data: " . implode(',',$rc_response['ids']));
+        SNP::sLog("Item count from Delete Redcap Data: " . $rc_response['item_count']);
 
         $string = "Changed status to Delete for Redcap appt record ID: " . $record_id;
-        SNP::log($string);
+        SNP::sLog($string);
 
         return $record_id;
     }
@@ -371,13 +371,13 @@ class Appt
         $rc_response = REDCap::saveData($this->appt_pid, 'array', $redcap_data, 'overwrite');
 
         $string = "Redcap Errors: " . implode(',', $rc_response['errors']) . ", or " . $rc_response['errors'];
-        SNP::log($string);
+        SNP::sLog($string);
         $string = "Redcap Warnings: " . implode(',', $rc_response['warnings']) . ", or " . $rc_response['warnings'];
-        SNP::log($string);
+        SNP::sLog($string);
         $string = "Redcap IDs: " . implode(',', $rc_response['ids']) . ", or " . $rc_response['ids'];
-        SNP::log($string);
+        SNP::sLog($string);
         $string = "Redcap item_count: " . $rc_response['item_count'];
-        SNP::log($string);
+        SNP::sLog($string);
 
         if ($rc_response['item_count'] > 0) {
             $response = array("status" => true,

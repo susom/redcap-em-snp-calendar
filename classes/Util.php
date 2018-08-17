@@ -72,7 +72,7 @@ class Util
         static $pid_saved = null;
 
         if (empty($field)) {
-            SNP::error("The variable list is undefined so cannot retrieve data dictionary options.");
+            SNP::sError("The variable list is undefined so cannot retrieve data dictionary options.");
         }
 
         // Retrieve data dictionary for this project

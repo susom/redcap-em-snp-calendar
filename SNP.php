@@ -19,27 +19,27 @@ class SNP extends \ExternalModules\AbstractExternalModule
         // Project-specific constructor
         global $project_id;
         if ($project_id > 0) {
-            self::log("In project $project_id");
+            self::sLog("In project $project_id");
 
 
 
 
         } else {
-            self::log("Not in project");
+            self::sLog("Not in project");
         }
 
     }
 
 
-    public static function log($obj = "Here", $detail = null, $type = "INFO") {
+    public static function sLog($obj = "Here", $detail = null, $type = "INFO") {
         self::writeLog($obj, $detail, $type);
     }
 
-    public static function debug($obj = "Here", $detail = null, $type = "DEBUG") {
+    public static function sDebug($obj = "Here", $detail = null, $type = "DEBUG") {
         self::writeLog($obj, $detail, $type);
     }
 
-    public static function error($obj = "Here", $detail = null, $type = "ERROR") {
+    public static function sError($obj = "Here", $detail = null, $type = "ERROR") {
         self::writeLog($obj, $detail, $type);
         //TODO: BUBBLE UP ERRORS FOR REVIEW!
     }

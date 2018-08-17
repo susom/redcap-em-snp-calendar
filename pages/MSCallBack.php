@@ -12,7 +12,7 @@ $msg = "Invalid";
 
 if (!empty($_POST)) {
     $msApi = new MSGraphAPI($project_id, $module->getProjectSetting('token_event_id'));
-    $module::log($_POST, "DEBUG", "Authorization Page: Incoming POST");
+    $module::sLog($_POST, "DEBUG", "Authorization Page: Incoming POST");
     $result = $msApi->processAuthorizationPostBack();
 
 
@@ -20,12 +20,12 @@ if (!empty($_POST)) {
 
     if ($result) {
         // Success
-        $module::log($result, "DEBUG", "Authorization successful");
+        $module::sLog($result, "DEBUG", "Authorization successful");
         redirect($module->getUrl("pages/Scheduler.php"));
         exit();
     } else {
         // Errors
-        $module::log($result, "ERROR", "Errors with authorization");
+        $module::sLog($result, "ERROR", "Errors with authorization");
 
         $msg = $msApi->getErrors();
     }

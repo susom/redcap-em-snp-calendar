@@ -5,7 +5,7 @@ namespace Stanford\SNP;
 use \REDCap;
 use \Exception;
 
-$module->log("Starting Appointment Report");
+$module->sLog("Starting Appointment Report");
 $event_name = $module->getProjectSetting('appt_event_id');
 $pid = 10062;
 
@@ -32,12 +32,12 @@ if(isset($_POST["submit"])=="Add Customer") {
 
     if (!$empty) {
         $next_id = Util::getNextId($pid, 'record_id', $event_name);
-        SNP::log("next id is $next_id");
+        SNP::sLog("next id is $next_id");
 
         $data['record_id']=$next_id;
 
         $result = REDCap::saveData($pid, 'json', json_encode(array($data)), 'overwrite');
-        SNP::log("Creating new record $next_id in main project: " . print_r($result,true), "DEBUG");
+        SNP::sLog("Creating new record $next_id in main project: " . print_r($result,true), "DEBUG");
     }
 
 

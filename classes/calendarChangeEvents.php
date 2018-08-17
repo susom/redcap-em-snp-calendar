@@ -26,7 +26,7 @@ class calendarChangeEvents
         global $project_id, $module;
         // Calendar appointments
 
-        SNP::log("*** Checking for differences between Outlook calendars and Redcap ****");
+        SNP::sLog("*** Checking for differences between Outlook calendars and Redcap ****");
         $this->calendarPID = $project_id;
         $this->event_id = $module->getProjectSetting('appt_event_id');
         $this->calendar_id = $module->getProjectSetting('calendar_event_id');
@@ -59,7 +59,7 @@ class calendarChangeEvents
 
         // See how long this takes
         $now = date('Y-m-d H:i:s');
-        SNP::log("Start time: $now");
+        SNP::sLog("Start time: $now");
 
         // Retrieve all calendars that have the cal_in_use flag set
         $all_modified_events = array();
@@ -68,7 +68,7 @@ class calendarChangeEvents
 
         foreach($calendars as $key => $value) {
             $this_cal = $value[$this->calendar_id];
-            SNP::log( "Calendar: " . $this_cal['record_id'] . " and values: " . implode(',', $this_cal));
+            SNP::sLog( "Calendar: " . $this_cal['record_id'] . " and values: " . implode(',', $this_cal));
             if (is_null($this_cal['delta_url']) or empty($this_cal['delta_url'])) {
                 // Setup a post request to retrieve the changes to this calendar. Since no delta URL has been
                 // saved, we are assuming this is the first time it is used.  We are setting the end time to be way
@@ -85,7 +85,7 @@ class calendarChangeEvents
             $token = $authToken->getValidToken();
             if (is_null($token) or empty($token)) {
                 $this->return_msg .= "<br>Cannot retrieve a valid token";
-                SNP::log("Cannot retrieve a valid token");
+                SNP::sLog("Cannot retrieve a valid token");
                 return null;
             }
 
@@ -94,7 +94,7 @@ class calendarChangeEvents
         }
 
         $now = date('Y-m-d H:i:s');
-        SNP::log("Finished retrieving differences time: $now");
+        SNP::sLog("Finished retrieving differences time: $now");
 
         return $all_modified_events;
     }
@@ -118,14 +118,14 @@ class calendarChangeEvents
             curl_close($ch);
 
             $http_code = $info['http_code'];
-            SNP::log("This is the post return code for calendar " . $http_code);
+            SNP::sLog("This is the post return code for calendar " . $http_code);
             if ($http_code == 200) {
                 $this->return_msg .= "This is the return code from POST " . $http_code . "<br>";
                 $eventList = json_decode($jsonResponse, true);
                 $events = $eventList['value'];
                 $request_url = $eventList['@odata.nextLink'];
                 $delta_link = $eventList['@odata.deltaLink'];
-                SNP::log("request url " . $request_url . " delta link " . $delta_link);
+                SNP::sLog("request url " . $request_url . " delta link " . $delta_link);
                 $format = 'Y-m-d H:i';
 
                 for ($ncount = 0; $ncount < count($events); $ncount++) {
@@ -230,7 +230,7 @@ class calendarChangeEvents
 
             } else {
                 $this->return_msg .= "<br>The return code from POST message is " . $http_code . ". Was not able to retrieve Outlook appointments.";
-                SNP::log("The return code from POST message is " . $http_code . ". Was not able to retrieve Outlook appointments.");
+                SNP::sLog("The return code from POST message is " . $http_code . ". Was not able to retrieve Outlook appointments.");
                 return null;
             }
 
